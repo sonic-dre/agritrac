@@ -8,31 +8,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          port: ${{ secrets.SSH_PORT }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -e
-            PHP=/opt/alt/php83/usr/bin/php
-            cd /home/u805153547/domains/revelplatforms.com/public_html/agritrac
-
-            git pull origin master
-
-            $PHP $(command -v composer) install --no-dev --optimize-autoloader --no-interaction
-
-            # Generate app key if not set
-            grep -q '^APP_KEY=base64:' .env || $PHP artisan key:generate --force
-
-            $PHP artisan migrate --force
-            $PHP artisan config:clear
-            $PHP artisan route:clear
-            $PHP artisan view:clear
-            $PHP artisan config:cache
-            $PHP artisan route:cache
-            $PHP artisan view:cache
-
-            echo "Deployment complete."
+      - name: Trigger deploy webhook
+        run: |
+          echo "Calling deploy webhook..."
+          HTTP=$(curl -s -o /tmp/deploy.log -w "%{http_code}" \
+            "${{ secrets.DEPLOY_WEBHOOK_URL }}?secret=${{ secrets.DEPLOY_SECRET }}")
+          echo "--- Server output ---"
+          cat /tmp/deploy.log
+          echo "--- HTTP status: $HTTP ---"
+          if [ "$HTTP" != "200" ]; then
+            echo "Deployment failed (HTTP $HTTP)"
+            exit 1
+          fi
