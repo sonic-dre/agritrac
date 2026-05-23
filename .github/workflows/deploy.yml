@@ -24,6 +24,9 @@ jobs:
 
             $PHP $(command -v composer) install --no-dev --optimize-autoloader --no-interaction
 
+            # Generate app key if not set
+            grep -q '^APP_KEY=base64:' .env || $PHP artisan key:generate --force
+
             $PHP artisan migrate --force
             $PHP artisan config:clear
             $PHP artisan route:clear
