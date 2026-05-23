@@ -284,6 +284,8 @@ canvas{display:block;width:100%!important}
       <div class="ni" id="sn-ac" onclick="gp('ac')"><i class="ti ti-report-money niico"></i><span>Accounting</span></div>
       <div class="ni" id="sn-ex" onclick="gp('ex')"><i class="ti ti-cash niico"></i><span>Expenses</span></div>
       <div class="ni" id="sn-hi" onclick="gp('hi')"><i class="ti ti-history niico"></i><span>History</span></div>
+      <div class="ngl">Catalogue</div>
+      <div class="ni" id="sn-pu" onclick="gp('pu')"><i class="ti ti-plant niico"></i><span>Produce & Units</span></div>
       <div class="ngl">Operations</div>
       <div class="ni" id="sn-sy" onclick="gp('sy')"><i class="ti ti-refresh niico"></i><span>Sync Monitor</span><span class="nbdg nbd-r" id="badge-sy">{{ $syncCount }}</span></div>
       <div class="ni" id="sn-st" onclick="gp('st')"><i class="ti ti-package niico"></i><span>Stock</span></div>
@@ -339,8 +341,8 @@ canvas{display:block;width:100%!important}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 let dark = true, online = true;
-const pages  = ['ov','tr','pr','fc','ac','ex','hi','sy','st','ma','um'];
-const titles = {ov:'Overview',tr:'Active Trips',pr:'Price Tracker',fc:'AI Forecast',ac:'Accounting',ex:'Expenses',hi:'Transaction History',sy:'Sync Monitor',st:'Stock',ma:'Mobile Agents',um:'User Management'};
+const pages  = ['ov','tr','pr','fc','ac','ex','hi','sy','st','pu','ma','um'];
+const titles = {ov:'Overview',tr:'Active Trips',pr:'Price Tracker',fc:'AI Forecast',ac:'Accounting',ex:'Expenses',hi:'Transaction History',sy:'Sync Monitor',st:'Stock',pu:'Produce & Units',ma:'Mobile Agents',um:'User Management'};
 const charts = {};
 let pageCache = {};
 

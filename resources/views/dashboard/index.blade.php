@@ -275,6 +275,52 @@
 </div>
 
 {{-- ══════════════════════════════════════════
+     PRODUCE & UNITS
+══════════════════════════════════════════ --}}
+<div class="pg" id="pg-pu">
+<div class="pgwrap">
+  <div class="msr">
+    <div class="ms"><div class="msl">Produce Types</div><div class="msv" id="pu-prod">—</div><div class="mss">Tracked commodities</div></div>
+    <div class="ms"><div class="msl">Buy Signals</div><div class="msv" style="color:var(--acc)" id="pu-buy">—</div><div class="mss">Active buy</div></div>
+    <div class="ms"><div class="msl">Sell Signals</div><div class="msv" style="color:var(--red)" id="pu-sell">—</div><div class="mss">Active sell</div></div>
+    <div class="ms"><div class="msl">Units</div><div class="msv" style="color:var(--blu)" id="pu-units">—</div><div class="mss">Measurement units</div></div>
+  </div>
+  <div class="g21">
+    <div class="card mb14">
+      <div class="ch">
+        <div class="ct">Produce Types</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="cb cb-g" id="pu-prod-badge">— Types</span>
+          <button class="hbtn hb-p" style="padding:4px 11px;font-size:11px" onclick="openNewProduce()"><i class="ti ti-plus" style="font-size:12px"></i> Add Produce</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="dtbl">
+          <thead><tr><th>Produce</th><th>Location</th><th>Price/kg</th><th>Change</th><th>Signal</th><th>Txns</th><th></th></tr></thead>
+          <tbody id="produce-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card mb14">
+      <div class="ch">
+        <div class="ct">Units of Measure</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="cb cb-b" id="pu-units-badge">— Units</span>
+          <button class="hbtn hb-p" style="padding:4px 11px;font-size:11px" onclick="openNewUnit()"><i class="ti ti-plus" style="font-size:12px"></i> Add Unit</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="dtbl">
+          <thead><tr><th>Name</th><th>Symbol</th><th>kg equiv.</th><th>Txns</th><th></th></tr></thead>
+          <tbody id="units-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+{{-- ══════════════════════════════════════════
      MOBILE AGENTS
 ══════════════════════════════════════════ --}}
 <div class="pg" id="pg-ma">
@@ -774,6 +820,7 @@ function renderPage(n, d) {
   if (n === 'hi')   renderHistory(d);
   if (n === 'sy')   renderSync(d);
   if (n === 'st')   renderStock(d);
+  if (n === 'pu')   renderProduceUnits(d);
   if (n === 'ma')   renderMobileAgents(d);
   if (n === 'um')   renderUsers(d);
 }
@@ -1249,6 +1296,166 @@ function renderUsers(d) {
       </div></td>
     </tr>
   `).join('');
+}
+
+// ─── PRODUCE & UNITS ─────────────────────────────────────────────────────────
+function renderProduceUnits(d) {
+  const s = d.stats || {};
+  document.getElementById('pu-prod').textContent        = s.produce_count || '—';
+  document.getElementById('pu-buy').textContent         = s.buy_signals   || '—';
+  document.getElementById('pu-sell').textContent        = s.sell_signals  || '—';
+  document.getElementById('pu-units').textContent       = s.unit_count    || '—';
+  document.getElementById('pu-prod-badge').textContent  = (s.produce_count || '—') + ' Types';
+  document.getElementById('pu-units-badge').textContent = (s.unit_count    || '—') + ' Units';
+
+  const signalBadge = sig => {
+    if (sig === 'buy')  return '<span class="spill sp-sy">Buy</span>';
+    if (sig === 'sell') return '<span class="spill sp-of">Sell</span>';
+    return '<span class="spill" style="background:var(--sur2);color:var(--mut)">Hold</span>';
+  };
+
+  document.getElementById('produce-tbody').innerHTML = (d.produces || []).map(p => `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:28px;height:28px;border-radius:8px;background:${hexToRgba(p.accent_color||'#6b7280',.15)};display:flex;align-items:center;justify-content:center;font-size:15px">${p.emoji}</div>
+          <div>
+            <div style="font-weight:600">${p.name}</div>
+            <div style="font-size:9px;color:var(--mut);font-family:var(--fm)">${p.slug}</div>
+          </div>
+        </div>
+      </td>
+      <td style="color:var(--txt2)">${p.primary_location || '—'}</td>
+      <td class="tm">${p.price_fmt}/kg</td>
+      <td class="tm ${p.change_percent >= 0 ? 'tg' : 'tr'}">${p.change_percent >= 0 ? '▲' : '▼'} ${Math.abs(p.change_percent)}%</td>
+      <td>${signalBadge(p.signal)}</td>
+      <td class="tm" style="color:var(--mut)">${p.txn_count}</td>
+      <td><div class="fact-btns">
+        <button class="abtn abtn-e" onclick='openEditProduce(${p.id},${JSON.stringify(p).replace(/"/g,"&quot;")})'><i class="ti ti-pencil"></i></button>
+        <button class="abtn abtn-d" onclick="askDelete('/produce-types/${p.id}','${p.name}')"><i class="ti ti-trash"></i></button>
+      </div></td>
+    </tr>
+  `).join('');
+
+  document.getElementById('units-tbody').innerHTML = (d.units || []).map(u => `
+    <tr>
+      <td style="font-weight:600">${u.name}</td>
+      <td class="tm" style="color:var(--acc)">${u.symbol}</td>
+      <td class="tm" style="color:var(--mut)">${u.base_kg ? u.base_kg + ' kg' : '—'}</td>
+      <td class="tm" style="color:var(--mut)">${u.txn_count}</td>
+      <td><div class="fact-btns">
+        <button class="abtn abtn-e" onclick='openEditUnit(${u.id},${JSON.stringify(u).replace(/"/g,"&quot;")})'><i class="ti ti-pencil"></i></button>
+        <button class="abtn abtn-d" onclick="askDelete('/units/${u.id}','${u.name}')"><i class="ti ti-trash"></i></button>
+      </div></td>
+    </tr>
+  `).join('');
+}
+
+let produceEditId = null;
+
+function openNewProduce() {
+  produceEditId = null;
+  document.getElementById('modal-produce-title').textContent = 'New Produce Type';
+  document.getElementById('produce-submit-btn').textContent  = 'Add Produce';
+  document.getElementById('f-prod-emoji').value    = '';
+  document.getElementById('f-prod-name').value     = '';
+  document.getElementById('f-prod-price').value    = '';
+  document.getElementById('f-prod-change').value   = '0';
+  document.getElementById('f-prod-signal').value   = 'hold';
+  document.getElementById('f-prod-location').value = '';
+  document.getElementById('f-prod-color').value    = '#6b7280';
+  clearErrors();
+  openModal('modal-produce');
+}
+
+function openEditProduce(id, data) {
+  produceEditId = id;
+  document.getElementById('modal-produce-title').textContent = 'Edit — ' + data.name;
+  document.getElementById('produce-submit-btn').textContent  = 'Save Changes';
+  document.getElementById('f-prod-emoji').value    = data.emoji            || '';
+  document.getElementById('f-prod-name').value     = data.name;
+  document.getElementById('f-prod-price').value    = data.current_price    || 0;
+  document.getElementById('f-prod-change').value   = data.change_percent   || 0;
+  document.getElementById('f-prod-signal').value   = data.signal           || 'hold';
+  document.getElementById('f-prod-location').value = data.primary_location || '';
+  document.getElementById('f-prod-color').value    = data.accent_color     || '#6b7280';
+  clearErrors();
+  openModal('modal-produce');
+}
+
+async function submitProduce() {
+  clearErrors();
+  const body = {
+    name:             document.getElementById('f-prod-name').value,
+    emoji:            document.getElementById('f-prod-emoji').value    || null,
+    current_price:    +document.getElementById('f-prod-price').value   || 0,
+    change_percent:   +document.getElementById('f-prod-change').value  || 0,
+    signal:           document.getElementById('f-prod-signal').value,
+    primary_location: document.getElementById('f-prod-location').value || null,
+    accent_color:     document.getElementById('f-prod-color').value    || null,
+  };
+
+  const url    = produceEditId ? '/produce-types/' + produceEditId : '/produce-types';
+  const method = produceEditId ? 'PUT' : 'POST';
+  const res    = await api(url, method, body);
+
+  if (res.success) {
+    closeModal('modal-produce');
+    pageCache['pu'] = null;
+    loadPage('pu');
+    showToast(produceEditId ? 'Produce type updated!' : 'Produce type added!');
+  } else if (res.errors) {
+    showErrors({'prod-name': res.errors.name});
+  }
+}
+
+let unitEditId = null;
+
+function openNewUnit() {
+  unitEditId = null;
+  document.getElementById('modal-unit-title').textContent = 'New Unit';
+  document.getElementById('unit-submit-btn').textContent  = 'Add Unit';
+  document.getElementById('f-unit-name').value    = '';
+  document.getElementById('f-unit-symbol').value  = '';
+  document.getElementById('f-unit-base-kg').value = '';
+  clearErrors();
+  openModal('modal-unit');
+}
+
+function openEditUnit(id, data) {
+  unitEditId = id;
+  document.getElementById('modal-unit-title').textContent = 'Edit — ' + data.name;
+  document.getElementById('unit-submit-btn').textContent  = 'Save Changes';
+  document.getElementById('f-unit-name').value    = data.name;
+  document.getElementById('f-unit-symbol').value  = data.symbol;
+  document.getElementById('f-unit-base-kg').value = data.base_kg || '';
+  clearErrors();
+  openModal('modal-unit');
+}
+
+async function submitUnit() {
+  clearErrors();
+  const body = {
+    name:    document.getElementById('f-unit-name').value,
+    symbol:  document.getElementById('f-unit-symbol').value,
+    base_kg: +document.getElementById('f-unit-base-kg').value || null,
+  };
+
+  const url    = unitEditId ? '/units/' + unitEditId : '/units';
+  const method = unitEditId ? 'PUT' : 'POST';
+  const res    = await api(url, method, body);
+
+  if (res.success) {
+    closeModal('modal-unit');
+    pageCache['pu'] = null;
+    loadPage('pu');
+    showToast(unitEditId ? 'Unit updated!' : 'Unit added!');
+  } else if (res.errors) {
+    const mapped = {};
+    if (res.errors.name)   mapped['unit-name']   = res.errors.name;
+    if (res.errors.symbol) mapped['unit-symbol']  = res.errors.symbol;
+    showErrors(mapped);
+  }
 }
 
 // ─── MOBILE AGENTS ───────────────────────────────────────────────────────────

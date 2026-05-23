@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/sy',  [DashboardController::class, 'sync']);
         Route::get('/st',  [DashboardController::class, 'stock']);
         Route::get('/um',  [UserController::class, 'index']);
+        Route::get('/pu',  [DashboardController::class, 'produceUnits']);
     });
 
     // Trips CRUD
@@ -73,10 +74,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('/agents/{agent}/toggle',    [AgentController::class, 'toggleActive']);
     Route::delete('/agents/{agent}',          [AgentController::class, 'destroy']);
 
-    // Produce types (quick-add)
-    Route::post('/produce-types', [ProduceTypeController::class, 'store']);
+    // Produce types CRUD
+    Route::post('/produce-types',                   [ProduceTypeController::class, 'store']);
+    Route::put('/produce-types/{produceType}',      [ProduceTypeController::class, 'update']);
+    Route::delete('/produce-types/{produceType}',   [ProduceTypeController::class, 'destroy']);
 
-    // Units (quick-add)
+    // Units CRUD
     Route::post('/units',          [UnitController::class, 'store']);
+    Route::put('/units/{unit}',    [UnitController::class, 'update']);
     Route::delete('/units/{unit}', [UnitController::class, 'destroy']);
 });

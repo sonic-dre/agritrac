@@ -466,6 +466,97 @@ $eacCurrencies = ['UGX','USD','KES','TZS','RWF','BIF','ETB','SOS','SSP','CDF','E
 </div>
 
 {{-- ══════════════════════════════════════════
+     PRODUCE TYPE MODAL  (create + edit)
+══════════════════════════════════════════ --}}
+<div class="modal-overlay" id="modal-produce" onclick="overlayClose(event,'modal-produce')">
+  <div class="modal-box" style="width:480px">
+    <div class="mh">
+      <div class="mt" id="modal-produce-title">New Produce Type</div>
+      <button class="mclose" onclick="closeModal('modal-produce')">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="frow">
+        <div class="fgrp" style="max-width:90px">
+          <div class="flbl">Emoji</div>
+          <input class="finp" type="text" id="f-prod-emoji" placeholder="🌿" style="text-align:center;font-size:20px">
+        </div>
+        <div class="fgrp" style="flex:1">
+          <div class="flbl">Name *</div>
+          <input class="finp" type="text" id="f-prod-name" placeholder="e.g. Sorghum">
+          <div class="ferr" id="err-prod-name"></div>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fgrp">
+          <div class="flbl">Current Price (per kg) *</div>
+          <input class="finp" type="number" id="f-prod-price" min="0" placeholder="e.g. 1200">
+        </div>
+        <div class="fgrp">
+          <div class="flbl">Change %</div>
+          <input class="finp" type="number" id="f-prod-change" step="0.1" placeholder="e.g. 3.2 or -1.5">
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fgrp">
+          <div class="flbl">Signal *</div>
+          <select class="finp" id="f-prod-signal">
+            <option value="buy">↑ Buy Now</option>
+            <option value="hold" selected>→ Hold</option>
+            <option value="sell">↓ Sell Fast</option>
+          </select>
+        </div>
+        <div class="fgrp">
+          <div class="flbl">Primary Location</div>
+          <input class="finp" type="text" id="f-prod-location" placeholder="e.g. Sironko">
+        </div>
+      </div>
+      <div class="fgrp">
+        <div class="flbl">Accent Colour</div>
+        <input class="finp" type="text" id="f-prod-color" placeholder="e.g. #3fb950">
+      </div>
+    </div>
+    <div class="mft">
+      <button class="hbtn hb-s" onclick="closeModal('modal-produce')">Cancel</button>
+      <button class="hbtn hb-p" id="produce-submit-btn" onclick="submitProduce()">Add Produce</button>
+    </div>
+  </div>
+</div>
+
+{{-- ══════════════════════════════════════════
+     UNIT MODAL  (create + edit)
+══════════════════════════════════════════ --}}
+<div class="modal-overlay" id="modal-unit" onclick="overlayClose(event,'modal-unit')">
+  <div class="modal-box" style="width:400px">
+    <div class="mh">
+      <div class="mt" id="modal-unit-title">New Unit</div>
+      <button class="mclose" onclick="closeModal('modal-unit')">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="frow">
+        <div class="fgrp">
+          <div class="flbl">Name *</div>
+          <input class="finp" type="text" id="f-unit-name" placeholder="e.g. 90kg Sack">
+          <div class="ferr" id="err-unit-name"></div>
+        </div>
+        <div class="fgrp">
+          <div class="flbl">Symbol *</div>
+          <input class="finp" type="text" id="f-unit-symbol" placeholder="e.g. 90kg sack">
+          <div class="ferr" id="err-unit-symbol"></div>
+        </div>
+      </div>
+      <div class="fgrp">
+        <div class="flbl">Kg Equivalent <span style="color:var(--mut);font-weight:400">(optional — used for tonnage calc)</span></div>
+        <input class="finp" type="number" id="f-unit-base-kg" step="0.001" min="0.001" placeholder="e.g. 90">
+      </div>
+    </div>
+    <div class="mft">
+      <button class="hbtn hb-s" onclick="closeModal('modal-unit')">Cancel</button>
+      <button class="hbtn hb-p" id="unit-submit-btn" onclick="submitUnit()">Add Unit</button>
+    </div>
+  </div>
+</div>
+
+{{-- ══════════════════════════════════════════
      MOBILE AGENT MODAL  (create + edit)
 ══════════════════════════════════════════ --}}
 <div class="modal-overlay" id="modal-agent" onclick="overlayClose(event,'modal-agent')">

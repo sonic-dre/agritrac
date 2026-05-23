@@ -352,6 +352,51 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function produceUnits(): JsonResponse
+    {
+        $produces = ProduceType::withCount(['transactions', 'priceRecords'])
+            ->orderBy('name')
+            ->get()
+            ->map(fn ($p) => [
+                'id'               => $p->id,
+                'name'             => $p->name,
+                'emoji'            => $p->emoji,
+                'slug'             => $p->slug,
+                'current_price'    => $p->current_price,
+                'price_fmt'        => number_format($p->current_price),
+                'change_percent'   => $p->change_percent,
+                'signal'           => $p->signal,
+                'signal_label'     => $p->signal_label,
+                'signal_class'     => $p->signal_class,
+                'primary_location' => $p->primary_location,
+                'accent_color'     => $p->accent_color,
+                'txn_count'        => $p->transactions_count,
+                'price_records'    => $p->price_records_count,
+            ]);
+
+        $units = Unit::withCount('transactions')
+            ->orderBy('name')
+            ->get()
+            ->map(fn ($u) => [
+                'id'        => $u->id,
+                'name'      => $u->name,
+                'symbol'    => $u->symbol,
+                'base_kg'   => $u->base_kg,
+                'txn_count' => $u->transactions_count,
+            ]);
+
+        return response()->json([
+            'stats' => [
+                'produce_count' => $produces->count(),
+                'unit_count'    => $units->count(),
+                'buy_signals'   => $produces->where('signal', 'buy')->count(),
+                'sell_signals'  => $produces->where('signal', 'sell')->count(),
+            ],
+            'produces' => $produces->values(),
+            'units'    => $units->values(),
+        ]);
+    }
+
     public function mobileAgents(): JsonResponse
     {
         if (!Auth::user()?->isManager()) {
