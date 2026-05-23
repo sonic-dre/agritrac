@@ -30,7 +30,11 @@ $log  = ["=== Deploy started at " . date('Y-m-d H:i:s') . " ===\n"];
 
 function run(string $cmd, string $cwd): array
 {
-    $proc = proc_open($cmd, [1 => ['pipe','w'], 2 => ['pipe','w']], $pipes, $cwd);
+    $env = array_merge(getenv(), [
+        'HOME'          => '/tmp',
+        'COMPOSER_HOME' => '/tmp/composer',
+    ]);
+    $proc = proc_open($cmd, [1 => ['pipe','w'], 2 => ['pipe','w']], $pipes, $cwd, $env);
     if (!is_resource($proc)) return ['out'=>'', 'err'=>'proc_open failed', 'code'=>1];
     $out  = stream_get_contents($pipes[1]);
     $err  = stream_get_contents($pipes[2]);
