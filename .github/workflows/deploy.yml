@@ -15,26 +15,29 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          debug: true
           script: |
             set -e
             cd /home/u805153547/domains/revelplatforms.com/public_html/agritrac
 
+            # Use PHP 8.3 explicitly (Hostinger shared hosting)
+            PHP=$(command -v php8.3 || command -v php83 || command -v php)
+            echo "Using PHP: $PHP ($($PHP -r 'echo PHP_VERSION;'))"
+
             # Pull latest code
             git pull origin master
 
-            # Install/update PHP dependencies (no dev, optimised autoloader)
-            composer install --no-dev --optimize-autoloader --no-interaction
+            # Install/update PHP dependencies
+            $PHP $(command -v composer) install --no-dev --optimize-autoloader --no-interaction
 
             # Run any pending migrations
-            php artisan migrate --force
+            $PHP artisan migrate --force
 
             # Clear and rebuild caches
-            php artisan config:clear
-            php artisan route:clear
-            php artisan view:clear
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+            $PHP artisan config:clear
+            $PHP artisan route:clear
+            $PHP artisan view:clear
+            $PHP artisan config:cache
+            $PHP artisan route:cache
+            $PHP artisan view:cache
 
             echo "Deployment complete."
