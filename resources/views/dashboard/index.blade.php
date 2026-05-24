@@ -364,13 +364,30 @@
       <div class="ct">Agent Field Locations</div>
       <span class="cb cb-b" id="mp-badge">— Points</span>
     </div>
-    <div style="display:flex;border-radius:0 0 12px 12px;overflow:hidden">
+    <div style="display:flex;border-radius:0 0 12px 12px;overflow:hidden;position:relative">
       <div id="mp-map" style="flex:1;height:520px;min-width:0"></div>
-      <div style="width:200px;border-left:1px solid var(--bdr);overflow-y:auto;max-height:520px;flex-shrink:0">
-        <div style="padding:10px 12px;border-bottom:1px solid var(--bdr)">
-          <div style="font-size:9px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:1px;font-family:var(--fm)">Legend</div>
+      <div id="mp-sidebar" style="width:240px;border-left:1px solid var(--bdr);display:flex;flex-direction:column;flex-shrink:0;background:var(--sur)">
+        {{-- Legend panel (default) --}}
+        <div id="mp-panel-legend" style="display:flex;flex-direction:column;height:100%">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:9px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:1px;font-family:var(--fm)">Agents</div>
+          </div>
+          <div id="mp-legend-list" style="flex:1;overflow-y:auto"></div>
+          <div style="padding:10px 14px;border-top:1px solid var(--bdr)">
+            <div style="font-size:9px;color:var(--mut);font-family:var(--fm);text-align:center">Click a pin for details</div>
+          </div>
         </div>
-        <div id="mp-legend-list" style="padding:8px 0"></div>
+        {{-- Detail panel (shown on marker click) --}}
+        <div id="mp-panel-detail" style="display:none;flex-direction:column;height:100%;overflow:hidden">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px">
+            <button onclick="closeMapDetail()" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:16px;line-height:1;padding:0 4px 0 0">←</button>
+            <div style="font-size:11px;font-weight:700;color:var(--txt)" id="mp-detail-title">Transaction</div>
+          </div>
+          <div id="mp-detail-body" style="flex:1;overflow-y:auto;padding:12px 14px;font-size:12px"></div>
+          <div style="padding:10px 14px;border-top:1px solid var(--bdr)">
+            <button id="mp-view-history-btn" onclick="" style="width:100%;padding:7px;border-radius:8px;border:1px solid var(--bdr2);background:var(--sur2);color:var(--txt);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--fb)">View in History →</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1232,7 +1249,7 @@ function mkExTrend(c) {
 function renderHistory(d) {
   const tbody = document.getElementById('history-tbody');
   tbody.innerHTML = (d.transactions || []).map(t => `
-    <tr>
+    <tr data-txn-id="${t.id}">
       <td class="tm">${t.seq}</td>
       <td>${t.date}</td>
       <td>${t.agent}</td>
@@ -1647,7 +1664,7 @@ function renderMap(d) {
   document.getElementById('mp-badge').textContent  = (d.count ?? '—') + ' Points';
 
   document.getElementById('mp-legend-list').innerHTML = (d.agents || []).map(a => `
-    <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--bdr)">
+    <div style="display:flex;align-items:center;gap:9px;padding:8px 14px;border-bottom:1px solid var(--bdr)">
       <div style="width:10px;height:10px;border-radius:50%;background:${a.color};flex-shrink:0"></div>
       <span style="font-size:12px;font-weight:600;color:var(--txt)">${a.name}</span>
     </div>
@@ -1655,7 +1672,7 @@ function renderMap(d) {
 
   setTimeout(() => {
     if (!mapInstance) {
-      mapInstance = L.map('mp-map').setView([1.3733, 32.2903], 7);
+      mapInstance = L.map('mp-map').setView([1.3733, 32.2903], 6);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         maxZoom: 19,
@@ -1666,30 +1683,129 @@ function renderMap(d) {
     }
 
     (d.points || []).forEach(p => {
+      const syncColors = { synced:'#3fb950', pending:'#d29922', offline:'#f85149' };
+      const typeBadgeColor = p.type === 'purchase' ? '#3fb950' : p.type === 'expense' ? '#f85149' : '#58a6ff';
+
+      // ── Rich hover tooltip ──────────────────────────────────────────────────
+      const tooltipHtml = `
+        <div style="font-family:system-ui,sans-serif;min-width:200px;max-width:240px">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid #eee">
+            <div style="width:9px;height:9px;border-radius:50%;background:${p.agent_color};flex-shrink:0"></div>
+            <span style="font-weight:700;font-size:12px;color:#111">${p.agent_name}</span>
+            <span style="margin-left:auto;font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:${typeBadgeColor}22;color:${typeBadgeColor}">${p.type_label}</span>
+          </div>
+          <div style="font-size:15px;font-weight:700;color:#111;margin-bottom:2px">${p.emoji} ${p.produce}</div>
+          ${p.location ? `<div style="font-size:10px;color:#888;margin-bottom:6px">📍 ${p.location}</div>` : ''}
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            ${p.qty_kg ? `<tr><td style="color:#888;padding:1px 0">Quantity</td><td style="font-weight:600;text-align:right">${Number(p.qty_kg).toLocaleString()} kg</td></tr>` : ''}
+            ${p.unit_price ? `<tr><td style="color:#888;padding:1px 0">Unit Price</td><td style="font-weight:600;text-align:right">${p.currency} ${Number(p.unit_price).toLocaleString()}/kg</td></tr>` : ''}
+            <tr><td style="color:#888;padding:1px 0">${p.amount < 0 ? 'Cost' : 'Amount'}</td><td style="font-weight:700;text-align:right;color:${p.amount < 0 ? '#f85149' : '#3fb950'}">${p.amount < 0 ? '-' : '+'}${p.currency} ${Number(Math.abs(p.amount||0)).toLocaleString()}</td></tr>
+            ${p.moisture ? `<tr><td style="color:#888;padding:1px 0">Moisture</td><td style="font-weight:600;text-align:right">${p.moisture}%</td></tr>` : ''}
+            ${p.trip_region ? `<tr><td style="color:#888;padding:1px 0">Trip</td><td style="font-weight:600;text-align:right;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.trip_region}</td></tr>` : ''}
+          </table>
+          ${p.notes ? `<div style="margin-top:6px;padding:4px 7px;background:#f5f5f5;border-radius:5px;font-size:10px;color:#666">${p.notes}</div>` : ''}
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:7px;padding-top:6px;border-top:1px solid #eee">
+            <span style="font-size:10px;color:#aaa">${p.date}</span>
+            <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:${(syncColors[p.sync_status]||'#888')}22;color:${syncColors[p.sync_status]||'#888'}">${p.sync_status}</span>
+          </div>
+          <div style="margin-top:6px;font-size:9px;color:#bbb;text-align:center">Click for full details</div>
+        </div>`;
+
       const m = L.circleMarker([p.lat, p.lng], {
         radius: 7, fillColor: p.agent_color, color: '#fff',
-        weight: 1.5, opacity: 1, fillOpacity: 0.85,
+        weight: 2, opacity: 1, fillOpacity: 0.88,
       }).addTo(mapInstance);
 
-      m.bindPopup(`
-        <div style="min-width:155px;font-family:sans-serif">
-          <div style="font-weight:700;font-size:13px;margin-bottom:3px">${p.emoji} ${p.produce}</div>
-          <div style="font-size:11px;color:#888;margin-bottom:4px">${p.agent_name}</div>
-          ${p.qty_kg    ? `<div style="font-size:12px">${Number(p.qty_kg).toLocaleString()} kg</div>` : ''}
-          ${p.amount    ? `<div style="font-size:12px;font-weight:600">${p.currency} ${Number(Math.abs(p.amount)).toLocaleString()}</div>` : ''}
-          ${p.location  ? `<div style="font-size:11px;color:#999;margin-top:2px">${p.location}</div>` : ''}
-          ${p.moisture  ? `<div style="font-size:11px;color:#777">Moisture: ${p.moisture}%</div>` : ''}
-          <div style="font-size:10px;color:#aaa;margin-top:4px">${p.date}</div>
-        </div>
-      `);
+      m.bindTooltip(tooltipHtml, {
+        sticky: false, opacity: 1, className: 'agri-tooltip',
+        offset: [10, -10],
+      });
+
+      // ── Click → side detail panel ────────────────────────────────────────────
+      m.on('click', () => openMapDetail(p));
+
+      // Highlight on hover
+      m.on('mouseover', function () { this.setStyle({ radius: 10, weight: 2.5 }); });
+      m.on('mouseout',  function () { this.setStyle({ radius: 7,  weight: 2   }); });
+
       mapMarkers.push(m);
     });
 
     if (mapMarkers.length > 0) {
-      try { mapInstance.fitBounds(L.latLngBounds(mapMarkers.map(m => m.getLatLng())), {padding:[40,40]}); } catch(e) {}
+      try { mapInstance.fitBounds(L.latLngBounds(mapMarkers.map(m => m.getLatLng())), {padding:[50,50]}); } catch(e) {}
     }
     mapInstance.invalidateSize();
   }, 120);
+}
+
+function openMapDetail(p) {
+  const syncColors  = { synced:'#3fb950', pending:'#d29922', offline:'#f85149' };
+  const typeBadgeColor = p.type === 'purchase' ? '#3fb950' : p.type === 'expense' ? '#f85149' : '#58a6ff';
+  const amtColor    = (p.amount ?? 0) < 0 ? 'var(--red)' : 'var(--acc)';
+  const amtSign     = (p.amount ?? 0) < 0 ? '−' : '+';
+  const sc          = syncColors[p.sync_status] ?? '#888';
+
+  document.getElementById('mp-detail-title').textContent = `${p.emoji} ${p.produce}`;
+
+  document.getElementById('mp-detail-body').innerHTML = `
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${p.agent_color};flex-shrink:0"></div>
+      <span style="font-weight:700;color:var(--txt)">${p.agent_name}</span>
+      <span style="margin-left:auto;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:${typeBadgeColor}22;color:${typeBadgeColor};font-family:var(--fm)">${p.type_label}</span>
+    </div>
+
+    ${row('📍 Location', p.location || '—')}
+    ${row('📅 Date',     p.date     || '—')}
+    ${p.trip_region ? row('🚛 Trip', p.trip_region) : ''}
+    <div style="height:1px;background:var(--bdr);margin:10px 0"></div>
+
+    ${p.qty_kg    ? row('⚖️ Quantity',   Number(p.qty_kg).toLocaleString() + ' kg') : ''}
+    ${p.unit_price ? row('🏷️ Unit Price', p.currency + ' ' + Number(p.unit_price).toLocaleString() + '/kg') : ''}
+    <div style="background:${amtColor}14;border:1px solid ${amtColor}33;border-radius:8px;padding:8px 10px;margin:8px 0;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:10px;color:var(--mut);font-family:var(--fm)">${(p.amount??0)<0?'COST':'INFLOW'}</span>
+      <span style="font-size:16px;font-weight:800;color:${amtColor};font-family:var(--fm)">${amtSign}${p.currency} ${Number(Math.abs(p.amount||0)).toLocaleString()}</span>
+    </div>
+    ${p.moisture ? row('💧 Moisture', p.moisture + '%') : ''}
+    <div style="height:1px;background:var(--bdr);margin:10px 0"></div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:11px;color:var(--mut)">Sync status</span>
+      <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:${sc}22;color:${sc};font-family:var(--fm)">${p.sync_status}</span>
+    </div>
+    ${p.notes ? `<div style="margin-top:6px;background:var(--sur2);border-radius:7px;padding:7px 9px;font-size:11px;color:var(--txt2)">${p.notes}</div>` : ''}
+  `;
+
+  document.getElementById('mp-view-history-btn').onclick = () => {
+    closeMapDetail();
+    gp('hi');
+    setTimeout(() => highlightTxn(p.id), 600);
+  };
+
+  document.getElementById('mp-panel-legend').style.display = 'none';
+  document.getElementById('mp-panel-detail').style.display = 'flex';
+  mapInstance?.invalidateSize();
+}
+
+function closeMapDetail() {
+  document.getElementById('mp-panel-legend').style.display = 'flex';
+  document.getElementById('mp-panel-detail').style.display = 'none';
+  mapInstance?.invalidateSize();
+}
+
+function row(label, value) {
+  return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;font-size:11px">
+    <span style="color:var(--mut)">${label}</span>
+    <span style="font-weight:600;color:var(--txt);text-align:right;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${value}</span>
+  </div>`;
+}
+
+function highlightTxn(id) {
+  const row = document.querySelector(`tr[data-txn-id="${id}"]`);
+  if (!row) return;
+  row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  row.style.transition = 'background .15s';
+  row.style.background = 'var(--adim)';
+  setTimeout(() => { row.style.background = ''; }, 2000);
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

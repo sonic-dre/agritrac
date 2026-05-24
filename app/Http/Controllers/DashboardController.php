@@ -137,7 +137,7 @@ class DashboardController extends Controller
 
     public function fieldMap(): JsonResponse
     {
-        $points = Transaction::with(['agent', 'produceType'])
+        $points = Transaction::with(['agent', 'produceType', 'trip'])
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->orderByDesc('transaction_date')
@@ -151,14 +151,22 @@ class DashboardController extends Controller
                 'agent_id'    => $t->agent_id,
                 'agent_name'  => $t->agent?->name ?? '—',
                 'agent_color' => $t->agent?->avatar_color ?? '#3fb950',
-                'produce'     => $t->produceType?->name ?? 'Transaction',
-                'emoji'       => $t->produceType?->emoji ?? '📦',
+                'produce'     => $t->produceType?->name ?? ($t->type === 'expense' ? ($t->category ?? 'Expense') : 'Transaction'),
+                'emoji'       => $t->produceType?->emoji ?? ($t->type === 'expense' ? '💸' : ($t->type === 'advance' ? '💰' : '📦')),
+                'type'        => $t->type,
+                'type_label'  => match($t->type) { 'purchase' => 'Purchase', 'expense' => 'Expense', 'advance' => 'Advance', default => ucfirst($t->type) },
                 'qty_kg'      => $t->quantity_kg,
+                'unit_price'  => $t->unit_price,
                 'amount'      => $t->total_amount,
                 'currency'    => $t->currency ?? 'UGX',
                 'location'    => $t->location,
                 'date'        => $t->transaction_date?->format('d M Y'),
                 'moisture'    => $t->moisture_content,
+                'sync_status' => $t->sync_status ?? 'synced',
+                'notes'       => $t->notes,
+                'trip_id'     => $t->trip_id,
+                'trip_region' => $t->trip?->region,
+                'category'    => $t->category,
             ]);
 
         $agentIds = $points->pluck('agent_id')->unique()->filter();
