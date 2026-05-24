@@ -67,6 +67,7 @@
     <div class="ms"><div class="msl">Capital Out</div><div class="msv" id="tr-cap">—</div><div class="mss">Advances issued</div></div>
     <div class="ms"><div class="msl">Next Arrival</div><div class="msv" id="tr-arr" style="font-size:13px">—</div><div class="mss">Returning agent</div></div>
   </div>
+  <div id="agent-stats-strip" style="display:none;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
   <div class="card mb14">
     <div class="ch">
       <div class="ct">All Active Trips</div>
@@ -344,6 +345,33 @@
         <thead><tr><th>Agent</th><th>Region</th><th>Base</th><th>Phone</th><th>Email</th><th>Login</th><th>Status</th><th>Trips</th><th>Txns</th><th></th></tr></thead>
         <tbody id="agents-tbody"></tbody>
       </table>
+    </div>
+  </div>
+</div>
+</div>
+
+{{-- ══════════════════════════════════════════
+     FIELD MAP
+══════════════════════════════════════════ --}}
+<div class="pg" id="pg-mp">
+<div class="pgwrap">
+  <div class="msr">
+    <div class="ms"><div class="msl">Geotagged Txns</div><div class="msv" id="mp-count" style="color:var(--blu)">—</div><div class="mss">Map points</div></div>
+    <div class="ms"><div class="msl">Agents on Map</div><div class="msv" id="mp-agents">—</div><div class="mss">Distinct agents</div></div>
+  </div>
+  <div class="card mb14">
+    <div class="ch">
+      <div class="ct">Agent Field Locations</div>
+      <span class="cb cb-b" id="mp-badge">— Points</span>
+    </div>
+    <div style="display:flex;border-radius:0 0 12px 12px;overflow:hidden">
+      <div id="mp-map" style="flex:1;height:520px;min-width:0"></div>
+      <div style="width:200px;border-left:1px solid var(--bdr);overflow-y:auto;max-height:520px;flex-shrink:0">
+        <div style="padding:10px 12px;border-bottom:1px solid var(--bdr)">
+          <div style="font-size:9px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:1px;font-family:var(--fm)">Legend</div>
+        </div>
+        <div id="mp-legend-list" style="padding:8px 0"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -823,6 +851,7 @@ function renderPage(n, d) {
   if (n === 'pu')   renderProduceUnits(d);
   if (n === 'ma')   renderMobileAgents(d);
   if (n === 'um')   renderUsers(d);
+  if (n === 'mp')   renderMap(d);
 }
 
 function renderCharts(n, d) {
@@ -922,6 +951,27 @@ function renderTrips(d) {
   document.getElementById('tr-cap').textContent    = (s.capital_out || '—') + 'M';
   document.getElementById('tr-arr').textContent    = s.next_arrival || '—';
   document.getElementById('tr-badge').textContent  = (s.active || '—') + ' Active';
+
+  // Per-agent metrics strip
+  const strip = document.getElementById('agent-stats-strip');
+  if (strip && d.agent_stats?.length) {
+    strip.innerHTML = d.agent_stats.map(a => `
+      <div style="background:var(--sur);border:1px solid var(--bdr2);border-left:3px solid ${a.color};border-radius:10px;padding:10px 14px;min-width:160px">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">
+          <div style="width:22px;height:22px;border-radius:50%;background:${hexToRgba(a.color,0.15)};border:1px solid ${hexToRgba(a.color,0.4)};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:${a.color};flex-shrink:0">${a.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+          <div style="font-size:12px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px">${a.name}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">
+          <div><div style="font-size:8px;color:var(--mut);font-family:var(--fm)">TRIPS</div><div style="font-size:13px;font-weight:700;color:var(--txt)">${a.trips}</div></div>
+          <div><div style="font-size:8px;color:var(--mut);font-family:var(--fm)">TONNES</div><div style="font-size:13px;font-weight:700;color:var(--acc)">${a.tonnage}</div></div>
+          <div><div style="font-size:8px;color:var(--mut);font-family:var(--fm)">SPENT</div><div style="font-size:11px;font-weight:700;color:var(--red)">${a.spent}</div></div>
+        </div>
+      </div>
+    `).join('');
+    strip.style.display = 'flex';
+  } else if (strip) {
+    strip.style.display = 'none';
+  }
 
   const tbody = document.getElementById('trips-tbody');
   tbody.innerHTML = (d.table || []).map((t, i) => {
@@ -1585,6 +1635,61 @@ async function toggleAgentStatus(id, name, currentlyActive) {
     loadPage('ma');
     showToast(`${name} ${res.is_active ? 'activated' : 'deactivated'}.`);
   }
+}
+
+// ─── FIELD MAP ───────────────────────────────────────────────────────────────
+let mapInstance = null;
+let mapMarkers  = [];
+
+function renderMap(d) {
+  document.getElementById('mp-count').textContent  = d.count  ?? '—';
+  document.getElementById('mp-agents').textContent = (d.agents ?? []).length || '—';
+  document.getElementById('mp-badge').textContent  = (d.count ?? '—') + ' Points';
+
+  document.getElementById('mp-legend-list').innerHTML = (d.agents || []).map(a => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--bdr)">
+      <div style="width:10px;height:10px;border-radius:50%;background:${a.color};flex-shrink:0"></div>
+      <span style="font-size:12px;font-weight:600;color:var(--txt)">${a.name}</span>
+    </div>
+  `).join('');
+
+  setTimeout(() => {
+    if (!mapInstance) {
+      mapInstance = L.map('mp-map').setView([1.3733, 32.2903], 7);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19,
+      }).addTo(mapInstance);
+    } else {
+      mapMarkers.forEach(m => m.remove());
+      mapMarkers = [];
+    }
+
+    (d.points || []).forEach(p => {
+      const m = L.circleMarker([p.lat, p.lng], {
+        radius: 7, fillColor: p.agent_color, color: '#fff',
+        weight: 1.5, opacity: 1, fillOpacity: 0.85,
+      }).addTo(mapInstance);
+
+      m.bindPopup(`
+        <div style="min-width:155px;font-family:sans-serif">
+          <div style="font-weight:700;font-size:13px;margin-bottom:3px">${p.emoji} ${p.produce}</div>
+          <div style="font-size:11px;color:#888;margin-bottom:4px">${p.agent_name}</div>
+          ${p.qty_kg    ? `<div style="font-size:12px">${Number(p.qty_kg).toLocaleString()} kg</div>` : ''}
+          ${p.amount    ? `<div style="font-size:12px;font-weight:600">${p.currency} ${Number(Math.abs(p.amount)).toLocaleString()}</div>` : ''}
+          ${p.location  ? `<div style="font-size:11px;color:#999;margin-top:2px">${p.location}</div>` : ''}
+          ${p.moisture  ? `<div style="font-size:11px;color:#777">Moisture: ${p.moisture}%</div>` : ''}
+          <div style="font-size:10px;color:#aaa;margin-top:4px">${p.date}</div>
+        </div>
+      `);
+      mapMarkers.push(m);
+    });
+
+    if (mapMarkers.length > 0) {
+      try { mapInstance.fitBounds(L.latLngBounds(mapMarkers.map(m => m.getLatLng())), {padding:[40,40]}); } catch(e) {}
+    }
+    mapInstance.invalidateSize();
+  }, 120);
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

@@ -86,6 +86,19 @@ class DashboardController extends Controller
             ->with('agent')
             ->get();
 
+        // Per-agent breakdown for the metrics strip
+        $agentStats = $active->groupBy('agent_id')->map(function ($trips) {
+            $a = $trips->first()->agent;
+            return [
+                'id'      => $a->id,
+                'name'    => $a->name,
+                'color'   => $a->avatar_color ?? '#58a6ff',
+                'trips'   => $trips->count(),
+                'tonnage' => round($trips->sum('tonnage_kg') / 1000, 2),
+                'spent'   => number_format(round($trips->sum('amount_spent') / 1_000_000, 1)) . 'M',
+            ];
+        })->values();
+
         return response()->json([
             'stats' => [
                 'active'       => $active->count(),
@@ -93,9 +106,12 @@ class DashboardController extends Controller
                 'capital_out'  => round($active->sum('advance_amount') / 1_000_000, 1),
                 'next_arrival' => $active->where('status', 'returning')->first()?->agent->name ?? 'None',
             ],
+            'agent_stats' => $agentStats,
             'table' => $active->map(fn ($t) => [
                 'id'                      => $t->id,
+                'agent_id'                => $t->agent_id,
                 'agent'                   => $t->agent->name,
+                'agent_color'             => $t->agent->avatar_color ?? '#58a6ff',
                 'region'                  => $t->region,
                 'produce'                 => $t->produce_string,
                 'tonnage'                 => number_format($t->tonnage_kg / 1000, 1),
@@ -116,6 +132,48 @@ class DashboardController extends Controller
                 'status_label'            => $t->status_label,
                 'status'                  => $t->status,
             ]),
+        ]);
+    }
+
+    public function fieldMap(): JsonResponse
+    {
+        $points = Transaction::with(['agent', 'produceType'])
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
+            ->limit(500)
+            ->get()
+            ->map(fn ($t) => [
+                'id'          => $t->id,
+                'lat'         => (float) $t->latitude,
+                'lng'         => (float) $t->longitude,
+                'agent_id'    => $t->agent_id,
+                'agent_name'  => $t->agent?->name ?? '—',
+                'agent_color' => $t->agent?->avatar_color ?? '#3fb950',
+                'produce'     => $t->produceType?->name ?? 'Transaction',
+                'emoji'       => $t->produceType?->emoji ?? '📦',
+                'qty_kg'      => $t->quantity_kg,
+                'amount'      => $t->total_amount,
+                'currency'    => $t->currency ?? 'UGX',
+                'location'    => $t->location,
+                'date'        => $t->transaction_date?->format('d M Y'),
+                'moisture'    => $t->moisture_content,
+            ]);
+
+        $agentIds = $points->pluck('agent_id')->unique()->filter();
+        $agents = Agent::whereIn('id', $agentIds)
+            ->get(['id', 'name', 'avatar_color'])
+            ->map(fn ($a) => [
+                'id'    => $a->id,
+                'name'  => $a->name,
+                'color' => $a->avatar_color ?? '#3fb950',
+            ]);
+
+        return response()->json([
+            'count'  => $points->count(),
+            'points' => $points->values(),
+            'agents' => $agents->values(),
         ]);
     }
 

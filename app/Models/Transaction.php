@@ -12,6 +12,7 @@ class Transaction extends Model
         'trip_id', 'agent_id', 'produce_type_id', 'type',
         'quantity_kg', 'unit_id', 'unit_price', 'total_amount', 'currency',
         'location', 'category', 'transaction_date', 'sync_status', 'notes',
+        'latitude', 'longitude', 'moisture_content',
     ];
 
     protected $casts = [

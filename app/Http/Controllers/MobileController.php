@@ -6,6 +6,7 @@ use App\Models\Agent;
 use App\Models\Expense;
 use App\Models\ProduceType;
 use App\Models\Transaction;
+use App\Models\Trip;
 use App\Models\Unit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,12 +51,20 @@ class MobileController extends Controller
             ->limit(15)
             ->get();
 
+        $trips = $this->agentTrips($agent);
+
         return response()->json([
             'agent'        => $this->agentPayload($agent),
             'produce'      => ProduceType::orderBy('name')->get(['id', 'name', 'emoji', 'slug', 'current_price', 'change_percent', 'signal', 'primary_location', 'accent_color']),
             'units'        => Unit::orderBy('name')->get(['id', 'name', 'symbol', 'base_kg']),
             'transactions' => $recentTxns->map(fn ($t) => $this->txPayload($t)),
+            'trips'        => $trips,
         ]);
+    }
+
+    public function trips(Request $request): JsonResponse
+    {
+        return response()->json($this->agentTrips($request->user()));
     }
 
     public function prices(): JsonResponse
@@ -80,23 +89,37 @@ class MobileController extends Controller
     public function storeTx(Request $request): JsonResponse
     {
         $data = $request->validate([
+            'trip_id'          => 'nullable|integer|exists:trips,id',
             'produce_type_id'  => 'nullable|integer|exists:produce_types,id',
             'type'             => 'required|string|max:30',
             'quantity_kg'      => 'nullable|numeric|min:0',
             'unit_id'          => 'nullable|integer|exists:units,id',
             'unit_price'       => 'nullable|integer|min:0',
             'total_amount'     => 'required|integer',
+            'currency'         => 'nullable|string|max:10',
             'location'         => 'nullable|string|max:100',
             'category'         => 'nullable|string|max:50',
             'transaction_date' => 'required|date',
             'notes'            => 'nullable|string|max:500',
+            'latitude'         => 'nullable|numeric|between:-90,90',
+            'longitude'        => 'nullable|numeric|between:-180,180',
+            'moisture_content' => 'nullable|numeric|between:0,100',
         ]);
 
         $tx = Transaction::create(array_merge($data, [
             'agent_id'    => $request->user()->id,
             'sync_status' => 'synced',
-            'currency'    => 'UGX',
+            'currency'    => $data['currency'] ?? 'UGX',
         ]));
+
+        // Update trip tonnage + spend totals
+        if (! empty($data['trip_id'])) {
+            $trip = Trip::find($data['trip_id']);
+            if ($trip) {
+                $trip->increment('tonnage_kg', max(0, $data['quantity_kg'] ?? 0));
+                $trip->increment('amount_spent', abs($data['total_amount']));
+            }
+        }
 
         return response()->json(['id' => $tx->id, 'saved' => true], 201);
     }
@@ -104,23 +127,60 @@ class MobileController extends Controller
     public function storeExpense(Request $request): JsonResponse
     {
         $data = $request->validate([
+            'trip_id'      => 'nullable|integer|exists:trips,id',
             'category'     => 'required|string|max:60',
             'label'        => 'nullable|string|max:100',
             'amount'       => 'required|integer|min:1',
             'expense_date' => 'required|date',
             'notes'        => 'nullable|string|max:500',
+            'latitude'     => 'nullable|numeric|between:-90,90',
+            'longitude'    => 'nullable|numeric|between:-180,180',
         ]);
 
         $exp = Expense::create([
+            'trip_id'      => $data['trip_id'] ?? null,
             'category'     => $data['category'],
             'label'        => $data['label'] ?? $data['category'],
             'sub_label'    => $data['notes'] ?? null,
             'amount'       => $data['amount'],
             'expense_date' => $data['expense_date'],
             'currency'     => 'UGX',
+            'latitude'     => $data['latitude'] ?? null,
+            'longitude'    => $data['longitude'] ?? null,
         ]);
 
+        // Update trip spend
+        if (! empty($data['trip_id'])) {
+            Trip::find($data['trip_id'])?->increment('amount_spent', $data['amount']);
+        }
+
         return response()->json(['id' => $exp->id, 'saved' => true], 201);
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    private function agentTrips(Agent $agent): array
+    {
+        return Trip::where('agent_id', $agent->id)
+            ->whereIn('status', ['departing', 'in_progress', 'returning'])
+            ->orderByDesc('start_date')
+            ->get()
+            ->map(fn ($t) => [
+                'id'            => $t->id,
+                'region'        => $t->region,
+                'status'        => $t->status,
+                'status_label'  => $t->status_label,
+                'start_date'    => $t->start_date?->format('d M Y'),
+                'current_day'   => $t->current_day,
+                'total_days'    => $t->total_days,
+                'produce_list'  => $t->produce_list ?? [],
+                'tonnage_kg'    => $t->tonnage_kg,
+                'amount_spent'  => $t->amount_spent,
+                'advance_amount'=> $t->advance_amount,
+                'currency'      => $t->currency ?? 'UGX',
+            ])
+            ->values()
+            ->all();
     }
 
     private function agentPayload(Agent $agent): array
@@ -148,6 +208,7 @@ class MobileController extends Controller
         return [
             'id'               => $tx->id,
             'type'             => $tx->type,
+            'trip_id'          => $tx->trip_id,
             'emoji'            => $isExpense ? '💸' : ($produce?->emoji ?? '📦'),
             'name'             => $isExpense
                 ? ($tx->category ?? 'Expense')
@@ -162,6 +223,9 @@ class MobileController extends Controller
             'quantity_kg'      => $tx->quantity_kg,
             'total_amount'     => $tx->total_amount,
             'transaction_date' => $tx->transaction_date?->format('Y-m-d'),
+            'latitude'         => $tx->latitude,
+            'longitude'        => $tx->longitude,
+            'moisture_content' => $tx->moisture_content,
         ];
     }
 }

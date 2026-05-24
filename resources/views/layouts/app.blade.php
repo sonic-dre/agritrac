@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -289,6 +290,7 @@ canvas{display:block;width:100%!important}
       <div class="ngl">Operations</div>
       <div class="ni" id="sn-sy" onclick="gp('sy')"><i class="ti ti-refresh niico"></i><span>Sync Monitor</span><span class="nbdg nbd-r" id="badge-sy">{{ $syncCount }}</span></div>
       <div class="ni" id="sn-st" onclick="gp('st')"><i class="ti ti-package niico"></i><span>Stock</span></div>
+      <div class="ni" id="sn-mp" onclick="gp('mp')"><i class="ti ti-map-pin niico"></i><span>Field Map</span></div>
       @if(auth()->user()->isManager())
       <div class="ngl">Admin</div>
       <div class="ni" id="sn-ma" onclick="gp('ma')"><i class="ti ti-device-mobile niico"></i><span>Mobile Agents</span></div>
@@ -338,11 +340,12 @@ canvas{display:block;width:100%!important}
 </div>
 <div class="toast" id="toastEl"></div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 let dark = true, online = true;
-const pages  = ['ov','tr','pr','fc','ac','ex','hi','sy','st','pu','ma','um'];
-const titles = {ov:'Overview',tr:'Active Trips',pr:'Price Tracker',fc:'AI Forecast',ac:'Accounting',ex:'Expenses',hi:'Transaction History',sy:'Sync Monitor',st:'Stock',pu:'Produce & Units',ma:'Mobile Agents',um:'User Management'};
+const pages  = ['ov','tr','pr','fc','ac','ex','hi','sy','st','pu','mp','ma','um'];
+const titles = {ov:'Overview',tr:'Active Trips',pr:'Price Tracker',fc:'AI Forecast',ac:'Accounting',ex:'Expenses',hi:'Transaction History',sy:'Sync Monitor',st:'Stock',pu:'Produce & Units',mp:'Field Map',ma:'Mobile Agents',um:'User Management'};
 const charts = {};
 let pageCache = {};
 

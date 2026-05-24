@@ -39,6 +39,7 @@ class TripController extends Controller
     public function update(Request $request, Trip $trip): JsonResponse
     {
         $data = $request->validate([
+            'agent_id'        => 'sometimes|exists:agents,id',
             'region'          => 'sometimes|string|max:100',
             'produce_list'    => 'sometimes|array',
             'produce_list.*'  => 'string',

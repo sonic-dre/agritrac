@@ -10,6 +10,7 @@ class Expense extends Model
     protected $fillable = [
         'trip_id', 'category', 'label', 'sub_label',
         'amount', 'currency', 'percentage', 'bar_color', 'icon', 'expense_date',
+        'latitude', 'longitude',
     ];
 
     protected $casts = [
