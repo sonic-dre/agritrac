@@ -10,6 +10,24 @@ use Illuminate\Validation\Rules\Password;
 
 class AgentController extends Controller
 {
+    private const PALETTE = [
+        '#3fb950','#58a6ff','#f0883e','#f85149','#d29922','#bc8cff',
+        '#39c5cf','#ff7eb6','#ffa94d','#63e6be','#a78bfa','#fb923c',
+    ];
+
+    private function pickColor(?int $excludeId = null): string
+    {
+        $used = Agent::when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->pluck('avatar_color')
+            ->map(fn ($c) => strtolower($c ?? ''))
+            ->toArray();
+
+        return collect(self::PALETTE)
+            ->first(fn ($c) => !in_array(strtolower($c), $used))
+            ?? self::PALETTE[0];
+    }
+
+
     public function index(): JsonResponse
     {
         $this->requireManager();
@@ -65,8 +83,12 @@ class AgentController extends Controller
         $parts = explode(' ', trim($data['name']));
         $data['initials'] = strtoupper(substr($parts[0], 0, 1)) . strtoupper(substr($parts[1] ?? '', 0, 1));
 
-        // Default non-nullable columns so MySQL strict mode doesn't reject explicit NULLs
-        $data['avatar_color'] = $data['avatar_color'] ?? '#58a6ff';
+        $data['avatar_color'] = $data['avatar_color'] ?? $this->pickColor();
+
+        // Reject a manually chosen color that's already taken
+        if (Agent::whereRaw('LOWER(avatar_color) = ?', [strtolower($data['avatar_color'])])->exists()) {
+            return response()->json(['errors' => ['avatar_color' => ['That color is already used by another agent.']]], 422);
+        }
 
         // Remove password if blank
         if (empty($data['password'])) {
@@ -97,7 +119,17 @@ class AgentController extends Controller
         $parts = explode(' ', trim($data['name']));
         $data['initials'] = strtoupper(substr($parts[0], 0, 1)) . strtoupper(substr($parts[1] ?? '', 0, 1));
 
-        $data['avatar_color'] = $data['avatar_color'] ?? $agent->avatar_color ?? '#58a6ff';
+        $data['avatar_color'] = $data['avatar_color'] ?? $agent->avatar_color ?? $this->pickColor($agent->id);
+
+        // Reject a manually chosen color that's already taken by a different agent
+        if (
+            strtolower($data['avatar_color']) !== strtolower($agent->avatar_color ?? '')
+            && Agent::where('id', '!=', $agent->id)
+                ->whereRaw('LOWER(avatar_color) = ?', [strtolower($data['avatar_color'])])
+                ->exists()
+        ) {
+            return response()->json(['errors' => ['avatar_color' => ['That color is already used by another agent.']]], 422);
+        }
 
         if (empty($data['password'])) {
             unset($data['password']);
