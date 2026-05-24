@@ -257,6 +257,9 @@ canvas{display:block;width:100%!important}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--sur);border:1px solid var(--bdr2);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;color:var(--txt);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;transform:translateY(10px);z-index:999}
 .toast.show{opacity:1;transform:translateY(0)}
 
+/* ── LEAFLET MAP ── */
+#mp-map{background:#111518}
+.lm #mp-map{background:#e8e8e8}
 /* ── LEAFLET TOOLTIP ── */
 .agri-tooltip{padding:10px 12px!important;border-radius:10px!important;border:1px solid rgba(0,0,0,0.08)!important;box-shadow:0 6px 20px rgba(0,0,0,0.13)!important;max-width:260px!important;pointer-events:none}
 .agri-tooltip::before{display:none!important}
