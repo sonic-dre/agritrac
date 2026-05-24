@@ -65,6 +65,9 @@ class AgentController extends Controller
         $parts = explode(' ', trim($data['name']));
         $data['initials'] = strtoupper(substr($parts[0], 0, 1)) . strtoupper(substr($parts[1] ?? '', 0, 1));
 
+        // Default non-nullable columns so MySQL strict mode doesn't reject explicit NULLs
+        $data['avatar_color'] = $data['avatar_color'] ?? '#58a6ff';
+
         // Remove password if blank
         if (empty($data['password'])) {
             unset($data['password']);
@@ -93,6 +96,8 @@ class AgentController extends Controller
         // Refresh initials if name changed
         $parts = explode(' ', trim($data['name']));
         $data['initials'] = strtoupper(substr($parts[0], 0, 1)) . strtoupper(substr($parts[1] ?? '', 0, 1));
+
+        $data['avatar_color'] = $data['avatar_color'] ?? $agent->avatar_color ?? '#58a6ff';
 
         if (empty($data['password'])) {
             unset($data['password']);
