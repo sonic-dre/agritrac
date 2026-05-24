@@ -249,7 +249,23 @@ class DatabaseSeeder extends Seeder
             ['trip_id' => 1, 'agent_id' => 1, 'produce_type_id' => null,'type'=> 'expense',  'quantity_kg' => null, 'unit_price' => null, 'total_amount' => -450000,    'location' => 'Sironko',        'sync_status' => 'synced',  'category' => 'labour', 'notes' => null, 'transaction_date' => $today->copy()->subDays(3)],
         ];
 
+        $geoByLocation = [
+            'Sironko'     => [1.2319,  34.2468],
+            'Kapchorwa'   => [1.3988,  34.4528],
+            'Gulu Market' => [2.7747,  32.3023],
+            'Kasese'      => [0.1836,  30.0827],
+            'Masaka'      => [-0.3133, 31.7359],
+            'Arua'        => [3.0227,  30.9100],
+            'Kumi'        => [1.4617,  33.9372],
+            'Kampala'     => [0.3476,  32.5825],
+            'Total Mbale' => [1.0808,  34.1751],
+        ];
+
         foreach ($rows as $r) {
+            if (isset($r['location'], $geoByLocation[$r['location']])) {
+                [$r['latitude'], $r['longitude']] = $geoByLocation[$r['location']];
+                $r['moisture_content'] = (float) rand(115, 165) / 10;
+            }
             Transaction::create($r);
         }
     }
