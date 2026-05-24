@@ -112,12 +112,16 @@ class MobileController extends Controller
             'currency'    => $data['currency'] ?? 'UGX',
         ]));
 
-        // Update trip tonnage + spend totals
+        // Update trip totals — sales credit revenue; purchases/expenses debit amount_spent
         if (! empty($data['trip_id'])) {
             $trip = Trip::find($data['trip_id']);
             if ($trip) {
-                $trip->increment('tonnage_kg', max(0, $data['quantity_kg'] ?? 0));
-                $trip->increment('amount_spent', abs($data['total_amount']));
+                if ($data['type'] === 'sale') {
+                    $trip->increment('revenue', abs($data['total_amount']));
+                } else {
+                    $trip->increment('tonnage_kg', max(0, $data['quantity_kg'] ?? 0));
+                    $trip->increment('amount_spent', abs($data['total_amount']));
+                }
             }
         }
 
@@ -205,14 +209,18 @@ class MobileController extends Controller
         $isExpense = $tx->type === 'expense';
         $amt = abs($tx->total_amount ?? 0);
 
+        $isSale = $tx->type === 'sale';
+
         return [
             'id'               => $tx->id,
             'type'             => $tx->type,
             'trip_id'          => $tx->trip_id,
-            'emoji'            => $isExpense ? '💸' : ($produce?->emoji ?? '📦'),
+            'emoji'            => $isExpense ? '💸' : ($isSale ? '🤝' : ($tx->type === 'advance' ? '💰' : ($produce?->emoji ?? '📦'))),
             'name'             => $isExpense
                 ? ($tx->category ?? 'Expense')
-                : (($produce?->name ?? 'Purchase') . ($tx->location ? ' — ' . $tx->location : '')),
+                : ($isSale
+                    ? (($produce?->name ?? 'Sale') . ($tx->location ? ' → ' . $tx->location : ''))
+                    : (($produce?->name ?? 'Purchase') . ($tx->location ? ' — ' . $tx->location : ''))),
             'sub'              => ($tx->quantity_kg ? number_format($tx->quantity_kg) . ' kg' : '') .
                 ($tx->location ? ' · ' . $tx->location : '') .
                 ($tx->transaction_date ? ' · ' . $tx->transaction_date->format('d M') : ''),

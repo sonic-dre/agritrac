@@ -154,7 +154,7 @@ class DashboardController extends Controller
                 'produce'     => $t->produceType?->name ?? ($t->type === 'expense' ? ($t->category ?? 'Expense') : 'Transaction'),
                 'emoji'       => $t->produceType?->emoji ?? ($t->type === 'expense' ? '💸' : ($t->type === 'advance' ? '💰' : '📦')),
                 'type'        => $t->type,
-                'type_label'  => match($t->type) { 'purchase' => 'Purchase', 'expense' => 'Expense', 'advance' => 'Advance', default => ucfirst($t->type) },
+                'type_label'  => match($t->type) { 'purchase' => 'Purchase', 'sale' => 'Sale', 'expense' => 'Expense', 'advance' => 'Advance', default => ucfirst($t->type) },
                 'qty_kg'      => $t->quantity_kg,
                 'unit_price'  => $t->unit_price,
                 'amount'      => $t->total_amount,
@@ -343,8 +343,10 @@ class DashboardController extends Controller
                 'seq'          => str_pad($i + 1, 3, '0', STR_PAD_LEFT),
                 'date'         => $t->transaction_date->format('d M'),
                 'agent'        => $t->agent ? $this->shortName($t->agent->name) : 'HQ',
-                'item'         => $t->produceType ? ($t->produceType->emoji . ' ' . $t->produceType->name) : ($t->category ? ucfirst($t->category) : 'Advance'),
-                'item_emoji'   => $t->type === 'advance' ? '💵' : ($t->category === 'fuel' ? '⛽' : ($t->category === 'labour' ? '👷' : '')),
+                'item'         => $t->produceType
+                    ? ($t->produceType->emoji . ' ' . $t->produceType->name)
+                    : ($t->type === 'sale' ? 'Sale' : ($t->category ? ucfirst($t->category) : 'Advance')),
+                'item_emoji'   => $t->type === 'sale' ? '🤝' : ($t->type === 'advance' ? '💵' : ($t->category === 'fuel' ? '⛽' : ($t->category === 'labour' ? '👷' : ''))),
                 'location'     => $t->location ?? '—',
                 'quantity'     => $t->quantity_kg ? number_format($t->quantity_kg) . ($t->unit ? ' ' . $t->unit->symbol : ' kg') : '—',
                 'unit_price'   => $t->unit_price ? number_format($t->unit_price) : '—',

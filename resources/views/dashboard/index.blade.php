@@ -1246,9 +1246,18 @@ function mkExTrend(c) {
 }
 
 // ─── HISTORY ─────────────────────────────────────────────────────────────────
+const TYPE_BADGE = {
+  Purchase: 'background:var(--gdim);color:var(--gld)',
+  Sale:     'background:var(--adim);color:var(--acc)',
+  Expense:  'background:var(--rdim);color:var(--red)',
+  Advance:  'background:var(--bdim);color:var(--blu)',
+};
+
 function renderHistory(d) {
   const tbody = document.getElementById('history-tbody');
-  tbody.innerHTML = (d.transactions || []).map(t => `
+  tbody.innerHTML = (d.transactions || []).map(t => {
+    const typeSt = TYPE_BADGE[t.type] || 'background:var(--sur2);color:var(--mut)';
+    return `
     <tr data-txn-id="${t.id}">
       <td class="tm">${t.seq}</td>
       <td>${t.date}</td>
@@ -1258,11 +1267,11 @@ function renderHistory(d) {
       <td class="tm">${t.quantity}</td>
       <td class="tm">${t.unit_price}</td>
       <td class="tm ${t.is_positive ? 'tg' : 'tr'}">${t.is_positive ? '+' : '-'}${t.total} <span style="font-size:9px;opacity:.6">${t.currency||'UGX'}</span></td>
-      <td>${t.type}</td>
+      <td><span class="spill" style="${typeSt}">${t.type}</span></td>
       <td><span class="spill ${t.sync_badge}">${t.sync_label}</span></td>
       <td><button class="abtn abtn-d" onclick="askDelete('/transactions/${t.id}','${t.item} — ${t.date}')"><i class="ti ti-trash"></i></button></td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
 
 // ─── SYNC ────────────────────────────────────────────────────────────────────
