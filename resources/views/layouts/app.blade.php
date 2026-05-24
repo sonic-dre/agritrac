@@ -260,6 +260,9 @@ canvas{display:block;width:100%!important}
 /* ── LEAFLET MAP ── */
 #mp-map{background:#111518}
 .lm #mp-map{background:#e8e8e8}
+/* Invert light tiles in dark mode — keeps roads/labels crisp */
+#mp-map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(0.88) contrast(1.05) saturate(0.9)}
+.lm #mp-map .leaflet-tile-pane{filter:none}
 /* ── LEAFLET TOOLTIP ── */
 .agri-tooltip{padding:10px 12px!important;border-radius:10px!important;border:1px solid rgba(0,0,0,0.08)!important;box-shadow:0 6px 20px rgba(0,0,0,0.13)!important;max-width:260px!important;pointer-events:none}
 .agri-tooltip::before{display:none!important}

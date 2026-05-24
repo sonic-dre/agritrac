@@ -1658,12 +1658,8 @@ async function toggleAgentStatus(id, name, currentlyActive) {
 let mapInstance  = null;
 let mapMarkers   = [];
 let mapTileLayer = null;
+const MAP_TILE   = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 const MAP_ATTR   = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
-function mapTileUrl() {
-  return dark
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-}
 
 function renderMap(d) {
   document.getElementById('mp-count').textContent  = d.count  ?? '—';
@@ -1680,10 +1676,8 @@ function renderMap(d) {
   setTimeout(() => {
     if (!mapInstance) {
       mapInstance  = L.map('mp-map').setView([1.3733, 32.2903], 6);
-      mapTileLayer = L.tileLayer(mapTileUrl(), { attribution: MAP_ATTR, maxZoom: 19 }).addTo(mapInstance);
+      mapTileLayer = L.tileLayer(MAP_TILE, { attribution: MAP_ATTR, maxZoom: 19 }).addTo(mapInstance);
     } else {
-      if (mapTileLayer) { mapTileLayer.remove(); }
-      mapTileLayer = L.tileLayer(mapTileUrl(), { attribution: MAP_ATTR, maxZoom: 19 }).addTo(mapInstance);
       mapMarkers.forEach(m => m.remove());
       mapMarkers = [];
     }
