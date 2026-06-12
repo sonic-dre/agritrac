@@ -12,8 +12,8 @@
     <div class="kpi"><div class="kacc" style="background:var(--acc)"></div><div class="klbl">Revenue MTD</div><div class="kval" id="kv-rev">—</div><span class="kbdg kb-g">▲ 18.4%</span></div>
     <div class="kpi"><div class="kacc" style="background:var(--ora)"></div><div class="klbl">Tonnage Bought</div><div class="kval" id="kv-ton">—</div><span class="kbdg kb-g">▲ 11.2%</span></div>
     <div class="kpi"><div class="kacc" style="background:var(--blu)"></div><div class="klbl">Net Profit MTD</div><div class="kval" id="kv-prf">—</div><span class="kbdg kb-b">▲ 22.7%</span></div>
-    <div class="kpi"><div class="kacc" style="background:var(--gld)"></div><div class="klbl">Active Trips</div><div class="kval" id="kv-atr">—</div><span class="kbdg kb-gd" id="kv-atr-sub">3 offline</span></div>
-    <div class="kpi"><div class="kacc" style="background:var(--red)"></div><div class="klbl">Pending Sync</div><div class="kval" id="kv-syn">{{ $syncCount }}</div><span class="kbdg kb-r" id="kv-syn-sub">4 agents</span></div>
+    <div class="kpi"><div class="kacc" style="background:var(--gld)"></div><div class="klbl">Active Trips</div><div class="kval" id="kv-atr">—</div><span class="kbdg kb-gd" id="kv-atr-sub">0 offline</span></div>
+    <div class="kpi"><div class="kacc" style="background:var(--red)"></div><div class="klbl">Pending Sync</div><div class="kval" id="kv-syn">—</div><span class="kbdg kb-r" id="kv-syn-sub">records</span></div>
   </div>
 
   <div class="g21">
@@ -906,11 +906,13 @@ function renderCharts(n, d) {
 // ─── OVERVIEW ────────────────────────────────────────────────────────────────
 function renderOverview(d) {
   // KPIs
-  document.getElementById('kv-rev').textContent = d.kpis?.revenue_mtd    || '342.8M';
-  document.getElementById('kv-ton').textContent = d.kpis?.tonnage_bought  || '184.2T';
-  document.getElementById('kv-prf').textContent = d.kpis?.net_profit      || '89.4M';
-  document.getElementById('kv-atr').textContent = d.kpis?.active_trips    || '6';
-  document.getElementById('kv-syn').textContent = d.kpis?.pending_sync    || '7';
+  document.getElementById('kv-rev').textContent     = d.kpis?.revenue_mtd   ?? '—';
+  document.getElementById('kv-ton').textContent     = d.kpis?.tonnage_bought ?? '—';
+  document.getElementById('kv-prf').textContent     = d.kpis?.net_profit     ?? '—';
+  document.getElementById('kv-atr').textContent     = d.kpis?.active_trips   ?? '0';
+  document.getElementById('kv-atr-sub').textContent = (d.kpis?.offline_trips ?? 0) + ' offline';
+  document.getElementById('kv-syn').textContent     = d.kpis?.pending_sync   ?? '0';
+  document.getElementById('kv-syn-sub').textContent = (d.kpis?.pending_sync ?? 0) === 1 ? '1 record' : (d.kpis?.pending_sync ?? 0) + ' records';
 
   // Routes
   const list = document.getElementById('routes-list');

@@ -523,17 +523,29 @@ class DashboardController extends Controller
     private function kpis(): array
     {
         $activeTripCount = Trip::whereNotIn('status', ['completed'])->count();
+        $offlineTrips    = Trip::where('sync_status', 'offline')->count();
         $pendingSync     = SyncRecord::where('status', '!=', 'synced')->count();
-        $revenue         = Trip::where('status', 'completed')->sum('revenue');
-        $profit          = Trip::where('status', 'completed')->sum('revenue') - Trip::where('status', 'completed')->sum('amount_spent');
+        $revenue         = (int) Trip::where('status', 'completed')->sum('revenue');
+        $cost            = (int) Trip::where('status', 'completed')->sum('amount_spent');
+        $tonnage         = (float) Trip::where('status', 'completed')->sum('tonnage_kg');
 
         return [
-            'revenue_mtd'    => '342.8M',
-            'tonnage_bought' => '184.2T',
-            'net_profit'     => '89.4M',
+            'revenue_mtd'    => $this->fmtNum($revenue),
+            'tonnage_bought' => number_format($tonnage / 1000, 1) . 'T',
+            'net_profit'     => $this->fmtNum($revenue - $cost),
             'active_trips'   => $activeTripCount,
+            'offline_trips'  => $offlineTrips,
             'pending_sync'   => $pendingSync,
         ];
+    }
+
+    private function fmtNum(int|float $n): string
+    {
+        if ($n === 0) return '0';
+        $abs = abs($n);
+        if ($abs >= 1_000_000) return number_format($n / 1_000_000, 1) . 'M';
+        if ($abs >= 1_000)     return number_format($n / 1_000, 1) . 'K';
+        return (string) (int) $n;
     }
 
     private function expenseDonut(): array
