@@ -154,8 +154,8 @@
 <div class="pgwrap">
   <div class="msr">
     <div class="ms"><div class="msl">Total Expenses</div><div class="msv" style="color:var(--red)" id="ex-tot">—</div><div class="mss">Ops costs MTD</div></div>
-    <div class="ms"><div class="msl">Fuel</div><div class="msv" id="ex-fuel">—</div><div class="mss">44.6% of ops</div></div>
-    <div class="ms"><div class="msl">Labour</div><div class="msv" id="ex-lab">—</div><div class="mss">29.5%</div></div>
+    <div class="ms"><div class="msl">Fuel</div><div class="msv" id="ex-fuel">—</div><div class="mss">of ops costs</div></div>
+    <div class="ms"><div class="msl">Labour</div><div class="msv" id="ex-lab">—</div><div class="mss">porter + driver</div></div>
     <div class="ms"><div class="msl">Other</div><div class="msv" id="ex-oth">—</div><div class="mss">25.9%</div></div>
   </div>
   <div class="g21">

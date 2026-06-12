@@ -263,32 +263,55 @@ class DashboardController extends Controller
 
     public function accounting(): JsonResponse
     {
-        $months   = ['Jan', 'Feb', 'Mar', 'Apr', 'May'];
-        $revenues = [280, 310, 295, 320, 342.8];
-        $costs    = [210, 230, 220, 242, 253.4];
-        $profits  = array_map(fn ($r, $c) => round($r - $c, 1), $revenues, $costs);
+        $revenue  = (int) Trip::where('status', 'completed')->sum('revenue');
+        $costs    = (int) Trip::where('status', 'completed')->sum('amount_spent');
+        $advances = (int) Trip::sum('advance_amount');
 
-        // Trip profit chart
-        $completed = Trip::where('status', 'completed')->limit(22)->get();
-        $tpLabels  = $completed->map((fn ($t, $i) => 'T' . ($i + 1)))->values();
+        // Last 6 months P&L
+        $months    = collect(range(5, 0))->map(fn ($i) => now()->subMonths($i));
+        $plLabels  = $months->map(fn ($m) => $m->format('M y'))->values();
+        $plRevenue = $months->map(fn ($m) => round(
+            Trip::where('status', 'completed')
+                ->whereYear('start_date', $m->year)->whereMonth('start_date', $m->month)
+                ->sum('revenue') / 1_000_000, 1
+        ))->values();
+        $plCosts = $months->map(fn ($m) => round(
+            Trip::where('status', 'completed')
+                ->whereYear('start_date', $m->year)->whereMonth('start_date', $m->month)
+                ->sum('amount_spent') / 1_000_000, 1
+        ))->values();
+        $plProfits = $plRevenue->zip($plCosts)->map(fn ($p) => round($p[0] - $p[1], 1))->values();
+
+        // Produce breakdown by spend
+        $prodData = Transaction::with('produceType')
+            ->where('type', 'purchase')
+            ->selectRaw('produce_type_id, SUM(ABS(total_amount)) as total_spent')
+            ->groupBy('produce_type_id')
+            ->orderByDesc('total_spent')
+            ->limit(6)
+            ->get();
+
+        // Per-trip profit chart
+        $completed = Trip::where('status', 'completed')->orderByDesc('id')->limit(22)->get()->reverse()->values();
+        $tpLabels  = $completed->map(fn ($t, $i) => 'T' . ($i + 1))->values();
         $tpData    = $completed->map(fn ($t) => round(($t->revenue - $t->amount_spent) / 1_000_000, 1));
 
         return response()->json([
             'stats' => [
-                'revenue'   => '342.8M',
-                'costs'     => '253.4M',
-                'profit'    => '89.4M',
-                'advances'  => '84.2M',
+                'revenue'  => $this->fmtNum($revenue),
+                'costs'    => $this->fmtNum($costs),
+                'profit'   => $this->fmtNum($revenue - $costs),
+                'advances' => $this->fmtNum($advances),
             ],
             'plChart' => [
-                'labels'  => $months,
-                'revenue' => $revenues,
-                'cost'    => $costs,
-                'profit'  => $profits,
+                'labels'  => $plLabels,
+                'revenue' => $plRevenue,
+                'cost'    => $plCosts,
+                'profit'  => $plProfits,
             ],
             'prodChart' => [
-                'labels' => ['Potatoes', 'Gnuts', 'Beans', 'Maize', 'Simsim', 'Other'],
-                'data'   => [38, 22, 18, 12, 7, 3],
+                'labels' => $prodData->map(fn ($r) => $r->produceType?->name ?? 'Unknown')->values(),
+                'data'   => $prodData->map(fn ($r) => round($r->total_spent / 1_000_000, 2))->values(),
                 'colors' => ['rgba(210,153,34,.8)', 'rgba(63,185,80,.8)', 'rgba(88,166,255,.8)', 'rgba(240,136,62,.8)', 'rgba(188,140,255,.8)', 'rgba(110,118,129,.6)'],
             ],
             'tpChart' => [
@@ -300,17 +323,33 @@ class DashboardController extends Controller
 
     public function expenses(): JsonResponse
     {
-        $expenses = Expense::orderByDesc('percentage')->get();
-        $months   = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
+        $allExpenses = Expense::orderByDesc('amount')->get();
+        $total       = $allExpenses->sum('amount');
+        $fuel        = $allExpenses->where('category', 'Fuel')->sum('amount');
+        $labour      = $allExpenses->whereIn('category', ['Porter / Loading', 'Driver Allowance'])->sum('amount');
+
+        // Last 12 months trend
+        $months      = collect(range(11, 0))->map(fn ($i) => now()->subMonths($i));
+        $trendLabels = $months->map(fn ($m) => $m->format('M'))->values();
+        $fuelTrend   = $months->map(fn ($m) => round(
+            Expense::where('category', 'Fuel')
+                ->whereYear('expense_date', $m->year)->whereMonth('expense_date', $m->month)
+                ->sum('amount') / 1_000_000, 2
+        ))->values();
+        $labourTrend = $months->map(fn ($m) => round(
+            Expense::whereIn('category', ['Porter / Loading', 'Driver Allowance'])
+                ->whereYear('expense_date', $m->year)->whereMonth('expense_date', $m->month)
+                ->sum('amount') / 1_000_000, 2
+        ))->values();
 
         return response()->json([
             'stats' => [
-                'total'  => '27.8M',
-                'fuel'   => '12.4M',
-                'labour' => '8.2M',
-                'other'  => '7.2M',
+                'total'  => $this->fmtNum($total),
+                'fuel'   => $this->fmtNum($fuel),
+                'labour' => $this->fmtNum($labour),
+                'other'  => $this->fmtNum(max(0, $total - $fuel - $labour)),
             ],
-            'breakdown' => $expenses->map(fn ($e) => [
+            'breakdown' => $allExpenses->map(fn ($e) => [
                 'id'         => $e->id,
                 'icon'       => $e->icon,
                 'label'      => $e->label,
@@ -319,15 +358,15 @@ class DashboardController extends Controller
                 'amount'     => number_format($e->amount),
                 'amount_raw' => $e->amount,
                 'currency'   => $e->currency ?? 'UGX',
-                'date'       => $e->expense_date->format('Y-m-d'),
+                'date'       => $e->expense_date?->format('Y-m-d'),
                 'percentage' => $e->percentage,
                 'bar_color'  => $e->bar_color,
                 'bar_width'  => (int) ($e->percentage * 2.0),
             ]),
             'trendChart' => [
-                'labels' => $months,
-                'fuel'   => [9.2, 10.1, 9.8, 11.2, 10.4, 11.8, 10.9, 12.1, 11.4, 12.8, 11.9, 12.44],
-                'labour' => [6.1, 6.4, 6.2, 7.0, 6.8, 7.2, 7.0, 7.5, 7.2, 7.8, 7.6, 8.2],
+                'labels' => $trendLabels,
+                'fuel'   => $fuelTrend,
+                'labour' => $labourTrend,
             ],
         ]);
     }
