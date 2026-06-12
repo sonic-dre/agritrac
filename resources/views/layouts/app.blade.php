@@ -280,7 +280,7 @@ canvas{display:block;width:100%!important}
     <nav class="sbnav">
       <div class="ngl">Overview</div>
       <div class="ni act" id="sn-ov" onclick="gp('ov')"><i class="ti ti-layout-dashboard niico"></i><span>Overview</span></div>
-      <div class="ni" id="sn-tr" onclick="gp('tr')"><i class="ti ti-truck niico"></i><span>Active Trips</span><span class="nbdg nbd-g" id="badge-tr">6</span></div>
+      <div class="ni" id="sn-tr" onclick="gp('tr')"><i class="ti ti-truck niico"></i><span>Active Trips</span><span class="nbdg nbd-g" id="badge-tr"></span></div>
       <div class="ngl">Market</div>
       <div class="ni" id="sn-pr" onclick="gp('pr')"><i class="ti ti-trending-up niico"></i><span>Price Tracker</span></div>
       <div class="ni" id="sn-fc" onclick="gp('fc')"><i class="ti ti-sparkles niico"></i><span>AI Forecast</span><span class="nbdg nbd-b">Live</span></div>
