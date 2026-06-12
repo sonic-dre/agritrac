@@ -1,0 +1,24 @@
+name: Clear Demo Data (run once)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  clear:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run clear-demo via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+            cd ${{ secrets.SSH_PATH }}
+            echo ">>> Running migrations (exchange_rate column)..."
+            /opt/alt/php83/usr/bin/php artisan migrate --force
+            echo ">>> Clearing demo data..."
+            /opt/alt/php83/usr/bin/php artisan app:clear-demo --no-interaction
+            echo ">>> Done."
