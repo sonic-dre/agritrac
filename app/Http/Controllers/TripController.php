@@ -21,6 +21,7 @@ class TripController extends Controller
             'payment_type'            => 'required|in:advance,full',
             'negotiated_price_per_kg' => 'nullable|integer|min:1',
             'currency'                => 'nullable|string|max:10',
+            'exchange_rate'           => 'nullable|numeric|min:0',
         ]);
 
         $trip = Trip::create([
@@ -52,6 +53,7 @@ class TripController extends Controller
             'tonnage_kg'      => 'sometimes|numeric|min:0',
             'amount_spent'    => 'sometimes|integer|min:0',
             'advance_amount'  => 'sometimes|integer|min:0',
+            'exchange_rate'   => 'sometimes|nullable|numeric|min:0',
         ]);
 
         $trip->update($data);

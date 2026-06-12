@@ -78,6 +78,11 @@ $eacCurrencies = isset($currencies) && $currencies->isNotEmpty()
           <div class="ferr" id="err-negotiated_price_per_kg"></div>
         </div>
         <div class="fgrp">
+          <div class="flbl">Exchange Rate (1 KES = ? UGX)</div>
+          <input class="finp" type="number" id="f-trip-exrate" min="0" step="0.0001" placeholder="e.g. 22.50">
+          <div class="ferr" id="err-exchange_rate"></div>
+        </div>
+        <div class="fgrp">
           <div class="flbl">Payment Type *</div>
           <select class="finp" id="f-trip-payment-type" onchange="tripPaymentTypeChange()">
             <option value="advance">Advance (partial payment issued)</option>
@@ -145,6 +150,10 @@ $eacCurrencies = isset($currencies) && $currencies->isNotEmpty()
           <div class="mny-wrap">
             <input class="finp" type="number" id="f-trip-spent" min="0" placeholder="0">
           </div>
+        </div>
+        <div class="fgrp">
+          <div class="flbl">Exchange Rate (1 KES = ? UGX)</div>
+          <input class="finp" type="number" id="f-trip-exrate-edit" min="0" step="0.0001" placeholder="e.g. 22.50">
         </div>
       </div>
     </div>

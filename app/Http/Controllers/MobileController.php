@@ -185,6 +185,7 @@ class MobileController extends Controller
                 'amount_spent'  => $t->amount_spent,
                 'advance_amount'=> $t->advance_amount,
                 'currency'      => $t->currency ?? 'UGX',
+                'exchange_rate' => $t->exchange_rate,
             ])
             ->values()
             ->all();

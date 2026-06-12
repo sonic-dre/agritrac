@@ -12,7 +12,7 @@ class Trip extends Model
         'agent_id', 'region', 'produce_list', 'start_date', 'total_days',
         'current_day', 'status', 'sync_status', 'offline_hours',
         'unsynced_records', 'tonnage_kg', 'amount_spent', 'advance_amount', 'revenue',
-        'negotiated_price_per_kg', 'payment_type', 'currency',
+        'negotiated_price_per_kg', 'payment_type', 'currency', 'exchange_rate',
     ];
 
     protected $casts = [
@@ -23,6 +23,7 @@ class Trip extends Model
         'advance_amount'          => 'integer',
         'negotiated_price_per_kg' => 'integer',
         'revenue'                 => 'integer',
+        'exchange_rate'           => 'float',
     ];
 
     public function agent(): BelongsTo

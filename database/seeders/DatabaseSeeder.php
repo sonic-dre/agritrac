@@ -23,12 +23,6 @@ class DatabaseSeeder extends Seeder
         $this->seedCurrencies();
         $this->seedUnits();
         $this->seedProduceTypes();
-        $this->seedAgents();
-        $this->seedTrips();
-        $this->seedTransactions();
-        $this->seedExpenses();
-        $this->seedPriceRecords();
-        $this->seedSyncRecords();
     }
 
     private function seedUsers(): void

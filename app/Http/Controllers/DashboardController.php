@@ -126,6 +126,7 @@ class DashboardController extends Controller
                 'negotiated_price_per_kg' => $t->negotiated_price_per_kg,
                 'neg_price_fmt'           => $t->negotiated_price_per_kg ? number_format($t->negotiated_price_per_kg) . '/kg' : null,
                 'currency'                => $t->currency ?? 'UGX',
+                'exchange_rate'           => $t->exchange_rate,
                 'day'                     => $t->current_day . '/' . $t->total_days,
                 'sync_badge'              => $t->sync_badge,
                 'sync_label'              => $t->sync_label,
@@ -543,6 +544,64 @@ class DashboardController extends Controller
             'data'   => $expenses->pluck('amount'),
             'colors' => ['rgba(240,136,62,.8)', 'rgba(88,166,255,.8)', 'rgba(63,185,80,.8)', 'rgba(248,81,73,.7)', 'rgba(188,140,255,.8)'],
         ];
+    }
+
+    public function tripDetail(Trip $trip): JsonResponse
+    {
+        $trip->load(['agent', 'transactions.produceType', 'transactions.unit', 'expenses']);
+
+        $purchases = $trip->transactions->where('type', 'purchase')->sortBy('transaction_date')->values();
+
+        $purByCur = $purchases->groupBy('currency')
+            ->map(fn ($g) => $g->sum(fn ($t) => abs($t->total_amount)));
+
+        $expByCur = $trip->expenses->groupBy('currency')
+            ->map(fn ($g) => $g->sum('amount'));
+
+        return response()->json([
+            'trip' => [
+                'id'             => $trip->id,
+                'agent'          => $trip->agent->name,
+                'agent_color'    => $trip->agent->avatar_color ?? '#58a6ff',
+                'region'         => $trip->region,
+                'produce'        => $trip->produce_string,
+                'start_date'     => $trip->start_date?->format('d M Y'),
+                'total_days'     => $trip->total_days,
+                'current_day'    => $trip->current_day,
+                'status'         => $trip->status,
+                'status_label'   => $trip->status_label,
+                'tonnage_kg'     => number_format($trip->tonnage_kg, 1),
+                'amount_spent'   => number_format($trip->amount_spent),
+                'advance_amount' => number_format($trip->advance_amount),
+                'currency'       => $trip->currency ?? 'UGX',
+                'exchange_rate'  => $trip->exchange_rate,
+                'payment_type'   => $trip->payment_type ?? 'advance',
+            ],
+            'purchases' => $purchases->map(fn ($t) => [
+                'date'       => $t->transaction_date?->format('d M'),
+                'produce'    => ($t->produceType?->emoji ?? '') . ' ' . ($t->produceType?->name ?? '—'),
+                'location'   => $t->location ?? '—',
+                'qty'        => number_format($t->quantity_kg, 1),
+                'unit'       => $t->unit?->symbol ?? 'kg',
+                'unit_price' => number_format($t->unit_price),
+                'total'      => number_format(abs($t->total_amount)),
+                'currency'   => $t->currency ?? 'UGX',
+                'notes'      => $t->notes,
+            ])->values(),
+            'expenses' => $trip->expenses->sortBy('expense_date')->values()->map(fn ($e) => [
+                'date'     => $e->expense_date?->format('d M'),
+                'category' => $e->category,
+                'label'    => $e->label,
+                'amount'   => number_format($e->amount),
+                'currency' => $e->currency ?? 'UGX',
+            ])->values(),
+            'summary' => [
+                'purchase_count'  => $purchases->count(),
+                'expense_count'   => $trip->expenses->count(),
+                'purchases_by_cur' => $purByCur,
+                'expenses_by_cur'  => $expByCur,
+            ],
+        ]);
     }
 
     private function shortName(string $name): string

@@ -39,6 +39,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/um',  [UserController::class, 'index']);
         Route::get('/pu',  [DashboardController::class, 'produceUnits']);
         Route::get('/mp',  [DashboardController::class, 'fieldMap']);
+        Route::get('/trip/{trip}', [DashboardController::class, 'tripDetail']);
     });
 
     // Trips CRUD

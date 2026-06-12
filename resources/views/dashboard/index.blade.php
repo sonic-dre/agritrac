@@ -472,7 +472,8 @@ function tripMode(mode, data = {}) {
     document.getElementById('f-trip-day').value      = (data.day || '0').split('/')[0];
     document.getElementById('f-trip-tonnage').value  = data.tonnage_raw || 0;
     document.getElementById('f-trip-spent').value    = data.spent_raw  || 0;
-    document.getElementById('f-trip-adv-edit').value = data.advance_raw || 0;
+    document.getElementById('f-trip-adv-edit').value   = data.advance_raw    || 0;
+    document.getElementById('f-trip-exrate-edit').value = data.exchange_rate || '';
   } else {
     document.getElementById('f-trip-date').value         = new Date().toISOString().split('T')[0];
     document.getElementById('f-trip-days').value         = '';
@@ -484,6 +485,7 @@ function tripMode(mode, data = {}) {
     document.getElementById('f-trip-amount-lbl').textContent = 'Advance Amount *';
     document.getElementById('f-trip-currency').value     = 'UGX';
     document.getElementById('f-trip-neg-currency').value = 'UGX';
+    document.getElementById('f-trip-exrate').value        = '';
     document.querySelectorAll('.trip-produce').forEach(c => c.checked = false);
     document.getElementById('qa-produce').style.display = 'none';
   }
@@ -511,8 +513,9 @@ async function submitTrip() {
       offline_hours:    +document.getElementById('f-trip-offline').value || 0,
       current_day:      +document.getElementById('f-trip-day').value     || 0,
       tonnage_kg:       +document.getElementById('f-trip-tonnage').value || 0,
-      amount_spent:     +document.getElementById('f-trip-spent').value   || 0,
-      advance_amount:   +document.getElementById('f-trip-adv-edit').value || 0,
+      amount_spent:     +document.getElementById('f-trip-spent').value      || 0,
+      advance_amount:   +document.getElementById('f-trip-adv-edit').value   || 0,
+      exchange_rate:    +document.getElementById('f-trip-exrate-edit').value || null,
     };
   } else {
     const produce = [...document.querySelectorAll('.trip-produce:checked')].map(c => c.value);
@@ -529,6 +532,7 @@ async function submitTrip() {
       payment_type:            document.getElementById('f-trip-payment-type').value,
       negotiated_price_per_kg: negPrice,
       currency:                document.getElementById('f-trip-currency').value || 'UGX',
+      exchange_rate:           +document.getElementById('f-trip-exrate').value || null,
     };
   }
 
@@ -1030,6 +1034,7 @@ function renderTrips(d) {
       <td><span class="spill ${t.sync_badge}">${t.sync_label}</span></td>
       <td><span class="spill ${stCls}">${t.status_label}</span></td>
       <td><div class="fact-btns">
+        <button class="abtn" style="background:var(--adim);color:var(--acc);border-color:var(--abdr)" onclick="openTripDetail(${t.id})"><i class="ti ti-eye"></i></button>
         <button class="abtn abtn-e" onclick='tripMode("edit",${JSON.stringify(t)});openModal("modal-trip")'><i class="ti ti-pencil"></i></button>
         <button class="abtn abtn-d" onclick="askDelete('/trips/${t.id}','${t.agent} — ${t.region}')"><i class="ti ti-trash"></i></button>
       </div></td>
@@ -1921,5 +1926,195 @@ function hexToRgba(hex, alpha) {
   const b = parseInt(hex.slice(5,7),16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
+
+// ─── TRIP DETAIL DRAWER ───────────────────────────────────────────────────────
+async function openTripDetail(id) {
+  try {
+    const d = await api('/api/dashboard/trip/' + id);
+    renderTripDetail(d);
+    document.getElementById('td-overlay').style.display = 'block';
+    document.getElementById('td-drawer').style.right = '0';
+  } catch(e) { showToast('Could not load trip detail'); }
+}
+
+function closeTripDetail() {
+  document.getElementById('td-overlay').style.display = 'none';
+  document.getElementById('td-drawer').style.right = '-540px';
+}
+
+function renderTripDetail(d) {
+  const t = d.trip;
+  const initials = t.agent.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+
+  const av = document.getElementById('td-avatar');
+  av.textContent = initials;
+  av.style.background = t.agent_color;
+
+  document.getElementById('td-agent').textContent = t.agent;
+  const stEl = document.getElementById('td-status');
+  stEl.textContent = t.status_label;
+  stEl.className = 'spill ' + (t.status === 'completed' ? 'sp-sy' : t.status === 'returning' ? 'sp-gd' : 'sp-pe');
+
+  document.getElementById('td-meta').textContent =
+    `${t.region}  ·  ${t.start_date || '—'}  ·  Day ${t.current_day}/${t.total_days}  ·  ${t.produce}`;
+
+  const statsData = [
+    { label: 'TONNAGE',  value: t.tonnage_kg + ' kg' },
+    { label: 'SPENT',    value: t.currency + ' ' + t.amount_spent },
+    { label: 'ADVANCE',  value: t.currency + ' ' + t.advance_amount },
+    { label: 'EX. RATE', value: t.exchange_rate ? '1 KES = ' + t.exchange_rate + ' UGX' : '—' },
+  ];
+  document.getElementById('td-stats').innerHTML = statsData.map(s => `
+    <div style="padding:10px 14px;background:var(--bg)">
+      <div style="font-size:8px;font-weight:700;letter-spacing:.9px;color:var(--mut);font-family:var(--fm)">${s.label}</div>
+      <div style="font-size:12px;font-weight:700;color:var(--txt);margin-top:3px;font-family:var(--fm)">${s.value}</div>
+    </div>
+  `).join('');
+
+  const purs = d.purchases || [];
+  document.getElementById('td-pur-count').textContent = '(' + purs.length + ')';
+  if (purs.length) {
+    document.getElementById('td-pur-table').style.display = '';
+    document.getElementById('td-pur-empty').style.display = 'none';
+    document.getElementById('td-pur-body').innerHTML = purs.map(p => `
+      <tr>
+        <td style="white-space:nowrap;color:var(--mut);font-size:10px">${p.date}</td>
+        <td>${p.produce}</td>
+        <td style="color:var(--mut);font-size:10px">${p.location}</td>
+        <td class="tr">${p.qty} <span style="color:var(--mut);font-size:9px">${p.unit}</span></td>
+        <td class="tr" style="font-family:var(--fm);font-size:11px">${p.unit_price}</td>
+        <td class="tr" style="font-weight:600;font-family:var(--fm)">${p.total}</td>
+        <td style="font-size:10px;color:var(--mut);font-family:var(--fm)">${p.currency}</td>
+      </tr>
+    `).join('');
+  } else {
+    document.getElementById('td-pur-table').style.display = 'none';
+    document.getElementById('td-pur-empty').style.display = 'block';
+  }
+
+  const exps = d.expenses || [];
+  document.getElementById('td-exp-count').textContent = '(' + exps.length + ')';
+  if (exps.length) {
+    document.getElementById('td-exp-table').style.display = '';
+    document.getElementById('td-exp-empty').style.display = 'none';
+    document.getElementById('td-exp-body').innerHTML = exps.map(e => `
+      <tr>
+        <td style="white-space:nowrap;color:var(--mut);font-size:10px">${e.date}</td>
+        <td>${e.category}</td>
+        <td style="color:var(--mut);font-size:10px">${e.label}</td>
+        <td class="tr" style="font-family:var(--fm)">${e.amount}</td>
+        <td style="font-size:10px;color:var(--mut);font-family:var(--fm)">${e.currency}</td>
+      </tr>
+    `).join('');
+  } else {
+    document.getElementById('td-exp-table').style.display = 'none';
+    document.getElementById('td-exp-empty').style.display = 'block';
+  }
+
+  const sumDiv  = document.getElementById('td-summary');
+  const sumRows = document.getElementById('td-summary-rows');
+  const s = d.summary || {};
+  const purByCur = s.purchases_by_cur || {};
+  const expByCur = s.expenses_by_cur  || {};
+  const hasKes   = purByCur['KES'] && t.exchange_rate;
+
+  if (Object.keys(purByCur).length || Object.keys(expByCur).length) {
+    sumDiv.style.display = 'block';
+    let rows = [];
+    Object.entries(purByCur).forEach(([cur, amt]) => {
+      rows.push(tdSumRow('Purchases (' + cur + ')', cur + ' ' + Number(amt).toLocaleString()));
+    });
+    if (hasKes) {
+      const ugxEq = Math.round(purByCur['KES'] * t.exchange_rate);
+      rows.push(tdSumRow('KES × ' + t.exchange_rate + ' → UGX', 'UGX ' + ugxEq.toLocaleString(), true));
+    }
+    Object.entries(expByCur).forEach(([cur, amt]) => {
+      rows.push(tdSumRow('Expenses (' + cur + ')', cur + ' ' + Number(amt).toLocaleString()));
+    });
+    if (hasKes && expByCur['UGX']) {
+      const total = Math.round(purByCur['KES'] * t.exchange_rate) + expByCur['UGX'];
+      rows.push(tdSumRow('Total Cost (UGX)', 'UGX ' + total.toLocaleString(), true));
+    }
+    sumRows.innerHTML = rows.join('');
+  } else {
+    sumDiv.style.display = 'none';
+  }
+}
+
+function tdSumRow(label, value, accent = false) {
+  return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--bdr)">
+    <span style="font-size:11px;color:var(--mut)">${label}</span>
+    <span style="font-size:12px;font-weight:${accent?'700':'600'};color:${accent?'var(--acc)':'var(--txt)'};font-family:var(--fm)">${value}</span>
+  </div>`;
+}
 </script>
+
+{{-- ═══════════════════════════════════
+     TRIP DETAIL DRAWER
+════════════════════════════════════ --}}
+<div id="td-overlay" onclick="closeTripDetail()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;cursor:pointer"></div>
+<aside id="td-drawer" style="position:fixed;top:0;right:-540px;width:540px;max-width:100vw;height:100vh;background:var(--bg);border-left:1px solid var(--bdr);z-index:901;display:flex;flex-direction:column;transition:right .28s cubic-bezier(.4,0,.2,1);box-shadow:-6px 0 32px rgba(0,0,0,.22)">
+
+  {{-- Sticky header --}}
+  <div style="flex-shrink:0;padding:16px 18px 13px;border-bottom:1px solid var(--bdr)">
+    <div style="display:flex;align-items:flex-start;gap:12px">
+      <div id="td-avatar" style="width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0;margin-top:1px"></div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span id="td-agent" style="font-size:15px;font-weight:700;color:var(--txt)"></span>
+          <span id="td-status" class="spill"></span>
+        </div>
+        <div id="td-meta" style="font-size:10px;color:var(--mut);margin-top:4px;font-family:var(--fm);line-height:1.5"></div>
+      </div>
+      <button onclick="closeTripDetail()" style="background:none;border:none;cursor:pointer;color:var(--mut);font-size:18px;line-height:1;padding:2px 4px;flex-shrink:0;margin-top:-2px">✕</button>
+    </div>
+  </div>
+
+  {{-- Stats strip --}}
+  <div id="td-stats" style="flex-shrink:0;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--bdr);border-bottom:1px solid var(--bdr)"></div>
+
+  {{-- Scrollable body --}}
+  <div style="flex:1;overflow-y:auto;padding:16px 18px 24px">
+
+    {{-- Purchases --}}
+    <div style="margin-bottom:20px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.9px;color:var(--mut);font-family:var(--fm);margin-bottom:8px">
+        PURCHASES <span id="td-pur-count" style="font-weight:400;letter-spacing:0"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="dtbl" id="td-pur-table">
+          <thead><tr>
+            <th>Date</th><th>Produce</th><th>Location</th>
+            <th class="tr">Qty</th><th class="tr">Price</th><th class="tr">Total</th><th>Cur.</th>
+          </tr></thead>
+          <tbody id="td-pur-body"></tbody>
+        </table>
+      </div>
+      <div id="td-pur-empty" style="display:none;text-align:center;padding:20px 0;color:var(--mut);font-size:12px">No purchases recorded yet</div>
+    </div>
+
+    {{-- Expenses --}}
+    <div style="margin-bottom:20px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.9px;color:var(--mut);font-family:var(--fm);margin-bottom:8px">
+        EXPENSES <span id="td-exp-count" style="font-weight:400;letter-spacing:0"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="dtbl" id="td-exp-table">
+          <thead><tr>
+            <th>Date</th><th>Category</th><th>Payee</th><th class="tr">Amount</th><th>Cur.</th>
+          </tr></thead>
+          <tbody id="td-exp-body"></tbody>
+        </table>
+      </div>
+      <div id="td-exp-empty" style="display:none;text-align:center;padding:20px 0;color:var(--mut);font-size:12px">No expenses recorded yet</div>
+    </div>
+
+    {{-- Cross-border cost summary --}}
+    <div id="td-summary" style="display:none;background:var(--sur);border:1px solid var(--bdr2);border-radius:12px;padding:14px 16px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.9px;color:var(--mut);font-family:var(--fm);margin-bottom:10px">CROSS-BORDER COST SUMMARY</div>
+      <div id="td-summary-rows"></div>
+    </div>
+
+  </div>
+</aside>
 @endsection
