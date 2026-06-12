@@ -285,7 +285,24 @@
     <div class="ms"><div class="msl">Buy Signals</div><div class="msv" style="color:var(--acc)" id="pu-buy">—</div><div class="mss">Active buy</div></div>
     <div class="ms"><div class="msl">Sell Signals</div><div class="msv" style="color:var(--red)" id="pu-sell">—</div><div class="mss">Active sell</div></div>
     <div class="ms"><div class="msl">Units</div><div class="msv" style="color:var(--blu)" id="pu-units">—</div><div class="mss">Measurement units</div></div>
+    <div class="ms"><div class="msl">Currencies</div><div class="msv" style="color:var(--gld)" id="pu-currencies">—</div><div class="mss">Active currencies</div></div>
   </div>
+  <div class="card mb14">
+    <div class="ch">
+      <div class="ct">Currencies</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="cb cb-gd" id="pu-cur-badge">— Currencies</span>
+        <button class="hbtn hb-p" style="padding:4px 11px;font-size:11px" onclick="openNewCurrency()"><i class="ti ti-plus" style="font-size:12px"></i> Add Currency</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="dtbl">
+        <thead><tr><th>Code</th><th>Name</th><th>Symbol</th><th>Status</th><th></th></tr></thead>
+        <tbody id="currencies-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="g21">
     <div class="card mb14">
       <div class="ch">
@@ -404,6 +421,7 @@
 const AGENTS       = @json($agents);
 const PRODUCES     = @json($produceTypes);
 const UNITS        = @json($units);
+const CURRENCIES   = @json($currencies);
 const CSRF         = document.querySelector('meta[name=csrf-token]').content;
 
 // ─── Modal helpers ────────────────────────────────────────────────────────────
@@ -1377,12 +1395,28 @@ function renderUsers(d) {
 // ─── PRODUCE & UNITS ─────────────────────────────────────────────────────────
 function renderProduceUnits(d) {
   const s = d.stats || {};
-  document.getElementById('pu-prod').textContent        = s.produce_count || '—';
-  document.getElementById('pu-buy').textContent         = s.buy_signals   || '—';
-  document.getElementById('pu-sell').textContent        = s.sell_signals  || '—';
-  document.getElementById('pu-units').textContent       = s.unit_count    || '—';
-  document.getElementById('pu-prod-badge').textContent  = (s.produce_count || '—') + ' Types';
-  document.getElementById('pu-units-badge').textContent = (s.unit_count    || '—') + ' Units';
+  document.getElementById('pu-prod').textContent        = s.produce_count    || '—';
+  document.getElementById('pu-buy').textContent         = s.buy_signals      || '—';
+  document.getElementById('pu-sell').textContent        = s.sell_signals     || '—';
+  document.getElementById('pu-units').textContent       = s.unit_count       || '—';
+  document.getElementById('pu-currencies').textContent  = s.active_currencies || '—';
+  document.getElementById('pu-prod-badge').textContent  = (s.produce_count   || '—') + ' Types';
+  document.getElementById('pu-units-badge').textContent = (s.unit_count      || '—') + ' Units';
+  document.getElementById('pu-cur-badge').textContent   = (s.currency_count  || '—') + ' Currencies';
+
+  document.getElementById('currencies-tbody').innerHTML = (d.currencies || []).map(c => `
+    <tr>
+      <td style="font-weight:700;color:var(--acc);font-family:var(--fm)">${c.code}</td>
+      <td style="color:var(--txt)">${c.name}</td>
+      <td class="tm" style="color:var(--mut)">${c.symbol}</td>
+      <td><span class="spill ${c.is_active ? 'sp-sy' : 'sp-of'}">${c.is_active ? 'Active' : 'Inactive'}</span></td>
+      <td><div class="fact-btns">
+        <button class="abtn abtn-e" onclick='openEditCurrency(${c.id},${JSON.stringify(c).replace(/"/g,"&quot;")})'><i class="ti ti-pencil"></i></button>
+        <button class="abtn" style="color:var(--mut)" onclick="toggleCurrency(${c.id})" title="${c.is_active ? 'Deactivate' : 'Activate'}"><i class="ti ti-power"></i></button>
+        <button class="abtn abtn-d" onclick="askDelete('/currencies/${c.id}','${c.code}')"><i class="ti ti-trash"></i></button>
+      </div></td>
+    </tr>
+  `).join('');
 
   const signalBadge = sig => {
     if (sig === 'buy')  return '<span class="spill sp-sy">Buy</span>';
@@ -1531,6 +1565,69 @@ async function submitUnit() {
     if (res.errors.name)   mapped['unit-name']   = res.errors.name;
     if (res.errors.symbol) mapped['unit-symbol']  = res.errors.symbol;
     showErrors(mapped);
+  }
+}
+
+// ─── CURRENCIES ──────────────────────────────────────────────────────────────
+let currencyEditId = null;
+
+function openNewCurrency() {
+  currencyEditId = null;
+  document.getElementById('modal-currency-title').textContent = 'New Currency';
+  document.getElementById('currency-submit-btn').textContent  = 'Add Currency';
+  document.getElementById('f-cur-code').value    = '';
+  document.getElementById('f-cur-name').value    = '';
+  document.getElementById('f-cur-symbol').value  = '';
+  document.getElementById('f-cur-order').value   = '';
+  clearErrors();
+  openModal('modal-currency');
+}
+
+function openEditCurrency(id, data) {
+  currencyEditId = id;
+  document.getElementById('modal-currency-title').textContent = 'Edit — ' + data.code;
+  document.getElementById('currency-submit-btn').textContent  = 'Save Changes';
+  document.getElementById('f-cur-code').value    = data.code;
+  document.getElementById('f-cur-name').value    = data.name;
+  document.getElementById('f-cur-symbol').value  = data.symbol;
+  document.getElementById('f-cur-order').value   = data.sort_order ?? '';
+  clearErrors();
+  openModal('modal-currency');
+}
+
+async function submitCurrency() {
+  clearErrors();
+  const body = {
+    code:       document.getElementById('f-cur-code').value.toUpperCase().trim(),
+    name:       document.getElementById('f-cur-name').value,
+    symbol:     document.getElementById('f-cur-symbol').value,
+    sort_order: +document.getElementById('f-cur-order').value || null,
+  };
+
+  const url    = currencyEditId ? '/currencies/' + currencyEditId : '/currencies';
+  const method = currencyEditId ? 'PUT' : 'POST';
+  const res    = await api(url, method, body);
+
+  if (res.success) {
+    closeModal('modal-currency');
+    pageCache['pu'] = null;
+    loadPage('pu');
+    showToast(currencyEditId ? 'Currency updated!' : 'Currency added!');
+  } else if (res.errors) {
+    const mapped = {};
+    if (res.errors.code)   mapped['cur-code']   = res.errors.code;
+    if (res.errors.name)   mapped['cur-name']   = res.errors.name;
+    if (res.errors.symbol) mapped['cur-symbol'] = res.errors.symbol;
+    showErrors(mapped);
+  }
+}
+
+async function toggleCurrency(id) {
+  const res = await api('/currencies/' + id + '/toggle', 'PATCH');
+  if (res.success) {
+    pageCache['pu'] = null;
+    loadPage('pu');
+    showToast(res.is_active ? 'Currency activated' : 'Currency deactivated');
   }
 }
 

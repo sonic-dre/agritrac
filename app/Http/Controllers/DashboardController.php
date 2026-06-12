@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agent;
+use App\Models\Currency;
 use App\Models\Expense;
 use App\Models\PriceRecord;
 use App\Models\ProduceType;
@@ -23,6 +24,7 @@ class DashboardController extends Controller
             'agents'       => Agent::orderBy('name')->get(['id', 'name', 'initials']),
             'produceTypes' => ProduceType::orderBy('name')->get(['id', 'name', 'emoji', 'slug']),
             'units'        => Unit::orderBy('name')->get(['id', 'name', 'symbol', 'base_kg']),
+            'currencies'   => Currency::active()->orderBy('sort_order')->orderBy('code')->get(),
         ]);
     }
 
@@ -453,15 +455,27 @@ class DashboardController extends Controller
                 'txn_count' => $u->transactions_count,
             ]);
 
+        $currencies = Currency::orderBy('sort_order')->orderBy('code')->get()->map(fn ($c) => [
+            'id'         => $c->id,
+            'code'       => $c->code,
+            'name'       => $c->name,
+            'symbol'     => $c->symbol,
+            'is_active'  => $c->is_active,
+            'sort_order' => $c->sort_order,
+        ]);
+
         return response()->json([
             'stats' => [
-                'produce_count' => $produces->count(),
-                'unit_count'    => $units->count(),
-                'buy_signals'   => $produces->where('signal', 'buy')->count(),
-                'sell_signals'  => $produces->where('signal', 'sell')->count(),
+                'produce_count'   => $produces->count(),
+                'unit_count'      => $units->count(),
+                'buy_signals'     => $produces->where('signal', 'buy')->count(),
+                'sell_signals'    => $produces->where('signal', 'sell')->count(),
+                'currency_count'  => $currencies->count(),
+                'active_currencies' => $currencies->where('is_active', true)->count(),
             ],
-            'produces' => $produces->values(),
-            'units'    => $units->values(),
+            'produces'   => $produces->values(),
+            'units'      => $units->values(),
+            'currencies' => $currencies->values(),
         ]);
     }
 

@@ -1,5 +1,15 @@
 @php
-$eacCurrencies = ['UGX','USD','KES','TZS','RWF','BIF','ETB','SOS','SSP','CDF','EUR','GBP'];
+// $currencies is passed from DashboardController::index()
+// Falls back to a static list if somehow not set
+$eacCurrencies = isset($currencies) && $currencies->isNotEmpty()
+    ? $currencies
+    : collect([
+        (object)['code'=>'UGX','name'=>'Uganda Shilling'],
+        (object)['code'=>'KES','name'=>'Kenyan Shilling'],
+        (object)['code'=>'USD','name'=>'US Dollar'],
+        (object)['code'=>'TZS','name'=>'Tanzanian Shilling'],
+        (object)['code'=>'RWF','name'=>'Rwandan Franc'],
+    ]);
 @endphp
 
 {{-- ══════════════════════════════════════════
@@ -62,7 +72,7 @@ $eacCurrencies = ['UGX','USD','KES','TZS','RWF','BIF','ETB','SOS','SSP','CDF','E
           <div class="mny-wrap">
             <input class="finp" type="number" id="f-trip-neg-price" min="1" placeholder="Optional">
             <select class="finp mny-cur" id="f-trip-neg-currency">
-              @foreach($eacCurrencies as $c)<option value="{{ $c }}"{{ $c === 'UGX' ? ' selected' : '' }}>{{ $c }}</option>@endforeach
+              @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
             </select>
           </div>
           <div class="ferr" id="err-negotiated_price_per_kg"></div>
@@ -79,7 +89,7 @@ $eacCurrencies = ['UGX','USD','KES','TZS','RWF','BIF','ETB','SOS','SSP','CDF','E
           <div class="mny-wrap">
             <input class="finp" type="number" id="f-trip-advance" min="0" placeholder="e.g. 15000000">
             <select class="finp mny-cur" id="f-trip-currency">
-              @foreach($eacCurrencies as $c)<option value="{{ $c }}"{{ $c === 'UGX' ? ' selected' : '' }}>{{ $c }}</option>@endforeach
+              @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
             </select>
           </div>
           <div class="ferr" id="err-advance_amount"></div>
@@ -125,7 +135,7 @@ $eacCurrencies = ['UGX','USD','KES','TZS','RWF','BIF','ETB','SOS','SSP','CDF','E
             <div class="mny-wrap">
               <input class="finp" type="number" id="f-trip-adv-edit" min="0" placeholder="0">
               <select class="finp mny-cur" id="f-trip-edit-currency">
-                @foreach($eacCurrencies as $c)<option value="{{ $c }}"{{ $c === 'UGX' ? ' selected' : '' }}>{{ $c }}</option>@endforeach
+                @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
               </select>
             </div>
           </div>
@@ -237,7 +247,7 @@ $eacCurrencies = ['UGX','USD','KES','TZS','RWF','BIF','ETB','SOS','SSP','CDF','E
             <div class="mny-wrap">
               <input class="finp" type="number" id="f-txn-price" min="0" placeholder="0">
               <select class="finp mny-cur" id="f-txn-currency">
-                @foreach($eacCurrencies as $c)<option value="{{ $c }}"{{ $c === 'UGX' ? ' selected' : '' }}>{{ $c }}</option>@endforeach
+                @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
               </select>
             </div>
             <div class="ferr" id="err-unit_price"></div>
@@ -264,7 +274,7 @@ $eacCurrencies = ['UGX','USD','KES','TZS','RWF','BIF','ETB','SOS','SSP','CDF','E
             <div class="mny-wrap">
               <input class="finp" type="number" id="f-txn-exp-amount" min="0" placeholder="0">
               <select class="finp mny-cur" id="f-txn-exp-currency">
-                @foreach($eacCurrencies as $c)<option value="{{ $c }}"{{ $c === 'UGX' ? ' selected' : '' }}>{{ $c }}</option>@endforeach
+                @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
               </select>
             </div>
           </div>
@@ -283,7 +293,7 @@ $eacCurrencies = ['UGX','USD','KES','TZS','RWF','BIF','ETB','SOS','SSP','CDF','E
             <div class="mny-wrap">
               <input class="finp" type="number" id="f-txn-adv-amount" min="0" placeholder="0">
               <select class="finp mny-cur" id="f-txn-adv-currency">
-                @foreach($eacCurrencies as $c)<option value="{{ $c }}"{{ $c === 'UGX' ? ' selected' : '' }}>{{ $c }}</option>@endforeach
+                @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
               </select>
             </div>
           </div>
@@ -344,7 +354,7 @@ $eacCurrencies = ['UGX','USD','KES','TZS','RWF','BIF','ETB','SOS','SSP','CDF','E
           <div class="mny-wrap">
             <input class="finp" type="number" id="f-exp-amount" min="1" placeholder="e.g. 1200000">
             <select class="finp mny-cur" id="f-exp-currency">
-              @foreach($eacCurrencies as $c)<option value="{{ $c }}"{{ $c === 'UGX' ? ' selected' : '' }}>{{ $c }}</option>@endforeach
+              @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
             </select>
           </div>
           <div class="ferr" id="err-exp-amount"></div>
@@ -389,7 +399,7 @@ $eacCurrencies = ['UGX','USD','KES','TZS','RWF','BIF','ETB','SOS','SSP','CDF','E
           <div class="mny-wrap">
             <input class="finp" type="number" id="f-price-val" min="1" placeholder="0">
             <select class="finp mny-cur" id="f-price-currency">
-              @foreach($eacCurrencies as $c)<option value="{{ $c }}"{{ $c === 'UGX' ? ' selected' : '' }}>{{ $c }}</option>@endforeach
+              @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
             </select>
           </div>
           <div class="ferr" id="err-price-val"></div>
@@ -552,6 +562,45 @@ $eacCurrencies = ['UGX','USD','KES','TZS','RWF','BIF','ETB','SOS','SSP','CDF','E
     <div class="mft">
       <button class="hbtn hb-s" onclick="closeModal('modal-unit')">Cancel</button>
       <button class="hbtn hb-p" id="unit-submit-btn" onclick="submitUnit()">Add Unit</button>
+    </div>
+  </div>
+</div>
+
+{{-- ══════════════════════════════════════════
+     CURRENCY MODAL  (create + edit)
+══════════════════════════════════════════ --}}
+<div class="modal-overlay" id="modal-currency" onclick="overlayClose(event,'modal-currency')">
+  <div class="modal-box" style="width:420px">
+    <div class="mh">
+      <div class="mt" id="modal-currency-title">New Currency</div>
+      <button class="mclose" onclick="closeModal('modal-currency')">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="frow">
+        <div class="fgrp">
+          <div class="flbl">Code * <span style="color:var(--mut);font-weight:400">(e.g. UGX)</span></div>
+          <input class="finp" type="text" id="f-cur-code" maxlength="10" placeholder="UGX" style="text-transform:uppercase">
+          <div class="ferr" id="err-cur-code"></div>
+        </div>
+        <div class="fgrp">
+          <div class="flbl">Symbol * <span style="color:var(--mut);font-weight:400">(e.g. USh)</span></div>
+          <input class="finp" type="text" id="f-cur-symbol" maxlength="10" placeholder="USh">
+          <div class="ferr" id="err-cur-symbol"></div>
+        </div>
+      </div>
+      <div class="fgrp">
+        <div class="flbl">Full Name *</div>
+        <input class="finp" type="text" id="f-cur-name" placeholder="e.g. Uganda Shilling">
+        <div class="ferr" id="err-cur-name"></div>
+      </div>
+      <div class="fgrp">
+        <div class="flbl">Sort Order <span style="color:var(--mut);font-weight:400">(lower = first in dropdown)</span></div>
+        <input class="finp" type="number" id="f-cur-order" min="0" placeholder="0">
+      </div>
+    </div>
+    <div class="mft">
+      <button class="hbtn hb-s" onclick="closeModal('modal-currency')">Cancel</button>
+      <button class="hbtn hb-p" id="currency-submit-btn" onclick="submitCurrency()">Add Currency</button>
     </div>
   </div>
 </div>

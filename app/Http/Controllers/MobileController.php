@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agent;
+use App\Models\Currency;
 use App\Models\Expense;
 use App\Models\ProduceType;
 use App\Models\Transaction;
@@ -57,6 +58,7 @@ class MobileController extends Controller
             'agent'        => $this->agentPayload($agent),
             'produce'      => ProduceType::orderBy('name')->get(['id', 'name', 'emoji', 'slug', 'current_price', 'change_percent', 'signal', 'primary_location', 'accent_color']),
             'units'        => Unit::orderBy('name')->get(['id', 'name', 'symbol', 'base_kg']),
+            'currencies'   => Currency::active()->orderBy('sort_order')->orderBy('code')->get(['id', 'code', 'name', 'symbol']),
             'transactions' => $recentTxns->map(fn ($t) => $this->txPayload($t)),
             'trips'        => $trips,
         ]);
@@ -135,6 +137,7 @@ class MobileController extends Controller
             'category'     => 'required|string|max:60',
             'label'        => 'nullable|string|max:100',
             'amount'       => 'required|integer|min:1',
+            'currency'     => 'nullable|string|max:10',
             'expense_date' => 'required|date',
             'notes'        => 'nullable|string|max:500',
             'latitude'     => 'nullable|numeric|between:-90,90',
@@ -147,8 +150,8 @@ class MobileController extends Controller
             'label'        => $data['label'] ?? $data['category'],
             'sub_label'    => $data['notes'] ?? null,
             'amount'       => $data['amount'],
+            'currency'     => $data['currency'] ?? 'UGX',
             'expense_date' => $data['expense_date'],
-            'currency'     => 'UGX',
             'latitude'     => $data['latitude'] ?? null,
             'longitude'    => $data['longitude'] ?? null,
         ]);
@@ -230,6 +233,7 @@ class MobileController extends Controller
             'produce_type_id'  => $tx->produce_type_id,
             'quantity_kg'      => $tx->quantity_kg,
             'total_amount'     => $tx->total_amount,
+            'currency'         => $tx->currency ?? 'UGX',
             'transaction_date' => $tx->transaction_date?->format('Y-m-d'),
             'latitude'         => $tx->latitude,
             'longitude'        => $tx->longitude,

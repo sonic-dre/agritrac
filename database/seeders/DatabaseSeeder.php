@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Agent;
+use App\Models\Currency;
 use App\Models\Expense;
 use App\Models\PriceRecord;
 use App\Models\ProduceType;
@@ -19,6 +20,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->seedUsers();
+        $this->seedCurrencies();
         $this->seedUnits();
         $this->seedProduceTypes();
         $this->seedAgents();
@@ -49,6 +51,25 @@ class DatabaseSeeder extends Seeder
             'password' => 'password',
             'role'     => 'viewer',
         ]);
+    }
+
+    private function seedCurrencies(): void
+    {
+        $currencies = [
+            ['code' => 'UGX', 'name' => 'Uganda Shilling',     'symbol' => 'USh', 'sort_order' => 1],
+            ['code' => 'KES', 'name' => 'Kenyan Shilling',      'symbol' => 'KSh', 'sort_order' => 2],
+            ['code' => 'TZS', 'name' => 'Tanzanian Shilling',   'symbol' => 'TSh', 'sort_order' => 3],
+            ['code' => 'USD', 'name' => 'US Dollar',            'symbol' => '$',   'sort_order' => 4],
+            ['code' => 'RWF', 'name' => 'Rwandan Franc',        'symbol' => 'RF',  'sort_order' => 5],
+            ['code' => 'BIF', 'name' => 'Burundian Franc',      'symbol' => 'Fr',  'sort_order' => 6],
+            ['code' => 'ETB', 'name' => 'Ethiopian Birr',       'symbol' => 'Br',  'sort_order' => 7],
+            ['code' => 'SOS', 'name' => 'Somali Shilling',      'symbol' => 'Sh',  'sort_order' => 8],
+            ['code' => 'SSP', 'name' => 'South Sudanese Pound', 'symbol' => 'SSP', 'sort_order' => 9],
+            ['code' => 'CDF', 'name' => 'Congolese Franc',      'symbol' => 'FC',  'sort_order' => 10],
+        ];
+        foreach ($currencies as $c) {
+            Currency::create($c);
+        }
     }
 
     private function seedUnits(): void

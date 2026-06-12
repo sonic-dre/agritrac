@@ -10,6 +10,7 @@ use App\Http\Controllers\ProduceTypeController;
 use App\Http\Controllers\SyncController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TripController;
+use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -84,4 +85,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/units',          [UnitController::class, 'store']);
     Route::put('/units/{unit}',    [UnitController::class, 'update']);
     Route::delete('/units/{unit}', [UnitController::class, 'destroy']);
+
+    // Currencies CRUD
+    Route::post('/currencies',                    [CurrencyController::class, 'store']);
+    Route::put('/currencies/{currency}',          [CurrencyController::class, 'update']);
+    Route::patch('/currencies/{currency}/toggle', [CurrencyController::class, 'toggle']);
+    Route::delete('/currencies/{currency}',       [CurrencyController::class, 'destroy']);
 });
