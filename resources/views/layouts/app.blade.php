@@ -436,8 +436,21 @@ function setDate() {
 }
 setDate();
 
+function fillCurrencySelects(currencies, keepVal) {
+  const opts = currencies.map(c => `<option value="${c.code}">${c.code} — ${c.name}</option>`).join('');
+  document.querySelectorAll('[data-cur-sel]').forEach(sel => {
+    const cur = keepVal ? sel.value : (sel.dataset.default || 'UGX');
+    sel.innerHTML = opts;
+    if (cur) sel.value = cur;
+    if (!sel.value && sel.options.length) sel.options[0].selected = true;
+  });
+}
+
 // Bootstrap first page
-setTimeout(() => loadPage('ov'), 150);
+setTimeout(() => {
+  fillCurrencySelects(window.INIT_CURRENCIES || []);
+  loadPage('ov');
+}, 150);
 </script>
 @yield('scripts')
 </body>

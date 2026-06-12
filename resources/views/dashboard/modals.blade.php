@@ -1,16 +1,15 @@
-@php
-// $currencies is passed from DashboardController::index()
-// Falls back to a static list if somehow not set
-$eacCurrencies = isset($currencies) && $currencies->isNotEmpty()
-    ? $currencies
-    : collect([
-        (object)['code'=>'UGX','name'=>'Uganda Shilling'],
-        (object)['code'=>'KES','name'=>'Kenyan Shilling'],
-        (object)['code'=>'USD','name'=>'US Dollar'],
-        (object)['code'=>'TZS','name'=>'Tanzanian Shilling'],
-        (object)['code'=>'RWF','name'=>'Rwandan Franc'],
-    ]);
-@endphp
+<script>
+window.INIT_CURRENCIES = @json(
+    (isset($currencies) && $currencies->isNotEmpty()
+        ? $currencies
+        : collect([
+            (object)['code'=>'UGX','name'=>'Uganda Shilling','is_active'=>true],
+            (object)['code'=>'KES','name'=>'Kenyan Shilling','is_active'=>true],
+            (object)['code'=>'USD','name'=>'US Dollar','is_active'=>true],
+        ])
+    )->map(fn($c) => ['code' => $c->code, 'name' => $c->name])
+);
+</script>
 
 {{-- ══════════════════════════════════════════
      TRIP MODAL  (create + edit)
@@ -71,8 +70,8 @@ $eacCurrencies = isset($currencies) && $currencies->isNotEmpty()
           <div class="flbl">Pre-negotiated Price (per kg)</div>
           <div class="mny-wrap">
             <input class="finp" type="number" id="f-trip-neg-price" min="1" placeholder="Optional">
-            <select class="finp mny-cur" id="f-trip-neg-currency">
-              @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
+            <select class="finp mny-cur" data-cur-sel data-default="KES" id="f-trip-neg-currency">
+              <option value="">Loading…</option>
             </select>
           </div>
           <div class="ferr" id="err-negotiated_price_per_kg"></div>
@@ -93,8 +92,8 @@ $eacCurrencies = isset($currencies) && $currencies->isNotEmpty()
           <div class="flbl" id="f-trip-amount-lbl">Advance Amount *</div>
           <div class="mny-wrap">
             <input class="finp" type="number" id="f-trip-advance" min="0" placeholder="e.g. 15000000">
-            <select class="finp mny-cur" id="f-trip-currency">
-              @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
+            <select class="finp mny-cur" data-cur-sel id="f-trip-currency">
+              <option value="">Loading…</option>
             </select>
           </div>
           <div class="ferr" id="err-advance_amount"></div>
@@ -139,8 +138,8 @@ $eacCurrencies = isset($currencies) && $currencies->isNotEmpty()
             <div class="flbl">Advance</div>
             <div class="mny-wrap">
               <input class="finp" type="number" id="f-trip-adv-edit" min="0" placeholder="0">
-              <select class="finp mny-cur" id="f-trip-edit-currency">
-                @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
+              <select class="finp mny-cur" data-cur-sel id="f-trip-edit-currency">
+                <option value="">Loading…</option>
               </select>
             </div>
           </div>
@@ -255,8 +254,8 @@ $eacCurrencies = isset($currencies) && $currencies->isNotEmpty()
             <div class="flbl">Unit Price *</div>
             <div class="mny-wrap">
               <input class="finp" type="number" id="f-txn-price" min="0" placeholder="0">
-              <select class="finp mny-cur" id="f-txn-currency">
-                @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
+              <select class="finp mny-cur" data-cur-sel id="f-txn-currency">
+                <option value="">Loading…</option>
               </select>
             </div>
             <div class="ferr" id="err-unit_price"></div>
@@ -282,8 +281,8 @@ $eacCurrencies = isset($currencies) && $currencies->isNotEmpty()
             <div class="flbl">Amount *</div>
             <div class="mny-wrap">
               <input class="finp" type="number" id="f-txn-exp-amount" min="0" placeholder="0">
-              <select class="finp mny-cur" id="f-txn-exp-currency">
-                @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
+              <select class="finp mny-cur" data-cur-sel id="f-txn-exp-currency">
+                <option value="">Loading…</option>
               </select>
             </div>
           </div>
@@ -301,8 +300,8 @@ $eacCurrencies = isset($currencies) && $currencies->isNotEmpty()
             <div class="flbl">Amount *</div>
             <div class="mny-wrap">
               <input class="finp" type="number" id="f-txn-adv-amount" min="0" placeholder="0">
-              <select class="finp mny-cur" id="f-txn-adv-currency">
-                @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
+              <select class="finp mny-cur" data-cur-sel id="f-txn-adv-currency">
+                <option value="">Loading…</option>
               </select>
             </div>
           </div>
@@ -362,8 +361,8 @@ $eacCurrencies = isset($currencies) && $currencies->isNotEmpty()
           <div class="flbl">Amount *</div>
           <div class="mny-wrap">
             <input class="finp" type="number" id="f-exp-amount" min="1" placeholder="e.g. 1200000">
-            <select class="finp mny-cur" id="f-exp-currency">
-              @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
+            <select class="finp mny-cur" data-cur-sel id="f-exp-currency">
+              <option value="">Loading…</option>
             </select>
           </div>
           <div class="ferr" id="err-exp-amount"></div>
@@ -407,8 +406,8 @@ $eacCurrencies = isset($currencies) && $currencies->isNotEmpty()
           <div class="flbl">Price per kg *</div>
           <div class="mny-wrap">
             <input class="finp" type="number" id="f-price-val" min="1" placeholder="0">
-            <select class="finp mny-cur" id="f-price-currency">
-              @foreach($eacCurrencies as $c)<option value="{{ $c->code }}"{{ $c->code === 'UGX' ? ' selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>@endforeach
+            <select class="finp mny-cur" data-cur-sel id="f-price-currency">
+              <option value="">Loading…</option>
             </select>
           </div>
           <div class="ferr" id="err-price-val"></div>

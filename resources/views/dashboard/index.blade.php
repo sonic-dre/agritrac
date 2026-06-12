@@ -514,7 +514,8 @@ function tripMode(mode, data = {}) {
     document.getElementById('f-trip-day').value      = (data.day || '0').split('/')[0];
     document.getElementById('f-trip-tonnage').value  = data.tonnage_raw || 0;
     document.getElementById('f-trip-spent').value    = data.spent_raw  || 0;
-    document.getElementById('f-trip-adv-edit').value   = data.advance_raw    || 0;
+    document.getElementById('f-trip-adv-edit').value    = data.advance_raw    || 0;
+    document.getElementById('f-trip-edit-currency').value = data.currency    || 'UGX';
     document.getElementById('f-trip-exrate-edit').value = data.exchange_rate || '';
   } else {
     document.getElementById('f-trip-date').value         = new Date().toISOString().split('T')[0];
@@ -1460,6 +1461,8 @@ function renderProduceUnits(d) {
     <button class="abtn" style="color:var(--mut)" onclick="toggleLookup(${lv.id})" title="${lv.is_active ? 'Deactivate' : 'Activate'}"><i class="ti ti-power"></i></button>
     <button class="abtn abtn-d" onclick="askDelete('/lookups/${lv.id}','${lv.label.replace(/'/g,"\\'")}')"><i class="ti ti-trash"></i></button>
   </div>`;
+
+  if (d.currencies?.length) fillCurrencySelects(d.currencies, true);
 
   const lookups = d.lookups || [];
   ['grade','payment_method','expense_category'].forEach(group => {
