@@ -12,6 +12,8 @@ jobs:
         run: |
           echo "Calling deploy webhook..."
           HTTP=$(curl -s -o /tmp/deploy.log -w "%{http_code}" \
+            --connect-timeout 10 \
+            --max-time 60 \
             "${{ secrets.DEPLOY_WEBHOOK_URL }}?secret=${{ secrets.DEPLOY_SECRET }}")
           echo "--- Server output ---"
           cat /tmp/deploy.log
