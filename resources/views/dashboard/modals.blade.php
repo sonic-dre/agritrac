@@ -1,14 +1,15 @@
+@php
+$initCurrencies = (isset($currencies) && $currencies->isNotEmpty()
+    ? $currencies
+    : collect([
+        (object)['code'=>'UGX','name'=>'Uganda Shilling'],
+        (object)['code'=>'KES','name'=>'Kenyan Shilling'],
+        (object)['code'=>'USD','name'=>'US Dollar'],
+    ])
+)->map(fn($c) => ['code' => $c->code, 'name' => $c->name])->values();
+@endphp
 <script>
-window.INIT_CURRENCIES = @json(
-    (isset($currencies) && $currencies->isNotEmpty()
-        ? $currencies
-        : collect([
-            (object)['code'=>'UGX','name'=>'Uganda Shilling','is_active'=>true],
-            (object)['code'=>'KES','name'=>'Kenyan Shilling','is_active'=>true],
-            (object)['code'=>'USD','name'=>'US Dollar','is_active'=>true],
-        ])
-    )->map(fn($c) => ['code' => $c->code, 'name' => $c->name])
-);
+window.INIT_CURRENCIES = @json($initCurrencies);
 </script>
 
 {{-- ══════════════════════════════════════════
