@@ -164,6 +164,68 @@ class MobileController extends Controller
         return response()->json(['id' => $exp->id, 'saved' => true], 201);
     }
 
+    public function tripFinance(Request $request, Trip $trip): JsonResponse
+    {
+        if ($trip->agent_id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $trip->load(['transactions.produceType', 'transactions.unit', 'expenses']);
+
+        $purchases = $trip->transactions->where('type', 'purchase');
+
+        $produceGroups = $purchases->groupBy('produce_type_id')->map(function ($items) {
+            $first = $items->first();
+            return [
+                'produce'   => $first->produceType?->name ?? 'Unknown',
+                'emoji'     => $first->produceType?->emoji ?? '📦',
+                'qty'       => number_format($items->sum('quantity_kg'), 1),
+                'total'     => number_format((int) $items->sum(fn ($t) => abs($t->total_amount))),
+                'total_raw' => (int) $items->sum(fn ($t) => abs($t->total_amount)),
+                'currency'  => $first->currency ?? 'KES',
+                'count'     => $items->count(),
+            ];
+        })->values();
+
+        $expenseGroups = $trip->expenses->groupBy('category')->map(function ($items) {
+            return [
+                'category'  => $items->first()->category,
+                'label'     => $items->first()->label,
+                'total'     => number_format((int) $items->sum('amount')),
+                'total_raw' => (int) $items->sum('amount'),
+                'currency'  => $items->first()->currency ?? 'UGX',
+                'count'     => $items->count(),
+            ];
+        })->values();
+
+        $totalProduce  = (int) $purchases->sum(fn ($t) => abs($t->total_amount));
+        $totalExpenses = (int) $trip->expenses->sum('amount');
+        $balance       = $trip->advance_amount - $trip->amount_spent;
+
+        return response()->json([
+            'trip' => [
+                'region'         => $trip->region,
+                'currency'       => $trip->currency ?? 'KES',
+                'advance_amount' => $trip->advance_amount,
+                'amount_spent'   => $trip->amount_spent,
+                'tonnage_kg'     => number_format($trip->tonnage_kg, 1),
+                'current_day'    => $trip->current_day,
+                'total_days'     => $trip->total_days,
+                'exchange_rate'  => $trip->exchange_rate,
+            ],
+            'purchases'  => $produceGroups,
+            'expenses'   => $expenseGroups,
+            'summary'    => [
+                'total_produce'  => number_format($totalProduce),
+                'total_expenses' => number_format($totalExpenses),
+                'advance'        => number_format($trip->advance_amount),
+                'balance'        => number_format(abs($balance)),
+                'balance_raw'    => $balance,
+                'currency'       => $trip->currency ?? 'KES',
+            ],
+        ]);
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private function agentTrips(Agent $agent): array

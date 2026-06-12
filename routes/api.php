@@ -10,6 +10,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/mobile/trips',         [MobileController::class, 'trips']);
     Route::get('/mobile/prices',        [MobileController::class, 'prices']);
     Route::get('/mobile/transactions',  [MobileController::class, 'transactions']);
-    Route::post('/mobile/transactions', [MobileController::class, 'storeTx']);
-    Route::post('/mobile/expenses',     [MobileController::class, 'storeExpense']);
+    Route::post('/mobile/transactions',              [MobileController::class, 'storeTx']);
+    Route::post('/mobile/expenses',                  [MobileController::class, 'storeExpense']);
+    Route::get('/mobile/trips/{trip}/finance',       [MobileController::class, 'tripFinance']);
 });
