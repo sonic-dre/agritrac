@@ -682,6 +682,45 @@ $eacCurrencies = isset($currencies) && $currencies->isNotEmpty()
 </div>
 
 {{-- ══════════════════════════════════════════
+     LOOKUP VALUE MODAL
+══════════════════════════════════════════ --}}
+<div class="modal-overlay" id="modal-lookup" onclick="overlayClose(event,'modal-lookup')">
+  <div class="modal-box" style="width:400px">
+    <div class="mh">
+      <div class="mt" id="modal-lookup-title">New Lookup Value</div>
+      <button class="mclose" onclick="closeModal('modal-lookup')">✕</button>
+    </div>
+    <div class="mbody">
+      <input type="hidden" id="f-lv-group">
+      <div class="frow">
+        <div class="fgrp" style="grid-column:1/-1">
+          <div class="flbl">Label *  <span style="color:var(--mut);font-weight:400">(shown in mobile app)</span></div>
+          <input class="finp" type="text" id="f-lv-label" placeholder="e.g. Grade A">
+          <div class="ferr" id="err-lv-label"></div>
+        </div>
+        <div class="fgrp" style="grid-column:1/-1">
+          <div class="flbl">Value  <span style="color:var(--mut);font-weight:400">(stored in DB — leave blank to match label)</span></div>
+          <input class="finp" type="text" id="f-lv-value" placeholder="Same as label if blank">
+          <div class="ferr" id="err-lv-value"></div>
+        </div>
+        <div class="fgrp" id="lv-emoji-row">
+          <div class="flbl">Emoji</div>
+          <input class="finp" type="text" id="f-lv-emoji" placeholder="e.g. ⛽" style="max-width:80px">
+        </div>
+        <div class="fgrp">
+          <div class="flbl">Sort Order</div>
+          <input class="finp" type="number" id="f-lv-order" placeholder="0">
+        </div>
+      </div>
+    </div>
+    <div class="mft">
+      <button class="hbtn hb-s" onclick="closeModal('modal-lookup')">Cancel</button>
+      <button class="hbtn hb-p" id="lookup-submit-btn" onclick="submitLookup()">Add</button>
+    </div>
+  </div>
+</div>
+
+{{-- ══════════════════════════════════════════
      CONFIRM DELETE MODAL
 ══════════════════════════════════════════ --}}
 <div class="modal-overlay" id="modal-confirm" onclick="overlayClose(event,'modal-confirm')">

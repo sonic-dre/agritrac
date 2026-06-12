@@ -11,6 +11,7 @@ use App\Http\Controllers\SyncController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\CurrencyController;
+use App\Http\Controllers\LookupController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -92,4 +93,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/currencies/{currency}',          [CurrencyController::class, 'update']);
     Route::patch('/currencies/{currency}/toggle', [CurrencyController::class, 'toggle']);
     Route::delete('/currencies/{currency}',       [CurrencyController::class, 'destroy']);
+
+    // Lookup values CRUD
+    Route::post('/lookups',                       [LookupController::class, 'store']);
+    Route::put('/lookups/{lookupValue}',          [LookupController::class, 'update']);
+    Route::patch('/lookups/{lookupValue}/toggle', [LookupController::class, 'toggle']);
+    Route::delete('/lookups/{lookupValue}',       [LookupController::class, 'destroy']);
 });

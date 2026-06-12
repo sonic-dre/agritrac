@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Agent;
 use App\Models\Currency;
 use App\Models\Expense;
+use App\Models\LookupValue;
 use App\Models\PriceRecord;
 use App\Models\ProduceType;
 use App\Models\SyncRecord;
@@ -504,18 +505,31 @@ class DashboardController extends Controller
             'sort_order' => $c->sort_order,
         ]);
 
+        $lookups = LookupValue::orderBy('group')->orderBy('sort_order')->orderBy('id')->get()
+            ->map(fn ($lv) => [
+                'id'         => $lv->id,
+                'group'      => $lv->group,
+                'label'      => $lv->label,
+                'value'      => $lv->value,
+                'emoji'      => $lv->emoji,
+                'sort_order' => $lv->sort_order,
+                'is_active'  => $lv->is_active,
+            ]);
+
         return response()->json([
             'stats' => [
-                'produce_count'   => $produces->count(),
-                'unit_count'      => $units->count(),
-                'buy_signals'     => $produces->where('signal', 'buy')->count(),
-                'sell_signals'    => $produces->where('signal', 'sell')->count(),
-                'currency_count'  => $currencies->count(),
+                'produce_count'     => $produces->count(),
+                'unit_count'        => $units->count(),
+                'buy_signals'       => $produces->where('signal', 'buy')->count(),
+                'sell_signals'      => $produces->where('signal', 'sell')->count(),
+                'currency_count'    => $currencies->count(),
                 'active_currencies' => $currencies->where('is_active', true)->count(),
+                'lookup_count'      => $lookups->count(),
             ],
             'produces'   => $produces->values(),
             'units'      => $units->values(),
             'currencies' => $currencies->values(),
+            'lookups'    => $lookups->values(),
         ]);
     }
 

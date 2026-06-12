@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Agent;
 use App\Models\Currency;
 use App\Models\Expense;
+use App\Models\LookupValue;
 use App\Models\ProduceType;
 use App\Models\Transaction;
 use App\Models\Trip;
@@ -54,6 +55,8 @@ class MobileController extends Controller
 
         $trips = $this->agentTrips($agent);
 
+        $lookups = LookupValue::active()->orderBy('group')->orderBy('sort_order')->get();
+
         return response()->json([
             'agent'        => $this->agentPayload($agent),
             'produce'      => ProduceType::orderBy('name')->get(['id', 'name', 'emoji', 'slug', 'current_price', 'change_percent', 'signal', 'primary_location', 'accent_color']),
@@ -61,6 +64,11 @@ class MobileController extends Controller
             'currencies'   => Currency::active()->orderBy('sort_order')->orderBy('code')->get(['id', 'code', 'name', 'symbol']),
             'transactions' => $recentTxns->map(fn ($t) => $this->txPayload($t)),
             'trips'        => $trips,
+            'lookups'      => [
+                'grades'             => $lookups->where('group', 'grade')->map(fn ($lv) => ['label' => $lv->label, 'value' => $lv->value])->values(),
+                'payment_methods'    => $lookups->where('group', 'payment_method')->map(fn ($lv) => ['label' => ($lv->emoji ? $lv->emoji . ' ' : '') . $lv->label, 'value' => $lv->value])->values(),
+                'expense_categories' => $lookups->where('group', 'expense_category')->map(fn ($lv) => ['label' => $lv->label, 'value' => $lv->value, 'emoji' => $lv->emoji])->values(),
+            ],
         ]);
     }
 

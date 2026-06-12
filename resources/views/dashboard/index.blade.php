@@ -286,6 +286,7 @@
     <div class="ms"><div class="msl">Sell Signals</div><div class="msv" style="color:var(--red)" id="pu-sell">—</div><div class="mss">Active sell</div></div>
     <div class="ms"><div class="msl">Units</div><div class="msv" style="color:var(--blu)" id="pu-units">—</div><div class="mss">Measurement units</div></div>
     <div class="ms"><div class="msl">Currencies</div><div class="msv" style="color:var(--gld)" id="pu-currencies">—</div><div class="mss">Active currencies</div></div>
+    <div class="ms"><div class="msl">Lookup Values</div><div class="msv" style="color:var(--mut)" id="pu-lookups">—</div><div class="mss">Grades · Payments · Categories</div></div>
   </div>
   <div class="card mb14">
     <div class="ch">
@@ -335,6 +336,47 @@
       </div>
     </div>
   </div>
+
+  {{-- Lookup Values --}}
+  <div class="card mb14">
+    <div class="ch">
+      <div class="ct">Lookup Values <span style="font-size:10px;color:var(--mut);font-weight:400">— grades, payment methods &amp; expense categories used by the mobile app</span></div>
+    </div>
+    <div class="g3" style="padding:0 16px 16px">
+
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:10px;font-weight:700;color:var(--mut);letter-spacing:1px;font-family:var(--fm)">GRADES</span>
+          <button class="hbtn hb-p" style="padding:3px 10px;font-size:10px" onclick="openNewLookup('grade')"><i class="ti ti-plus" style="font-size:11px"></i> Add</button>
+        </div>
+        <table class="dtbl"><thead><tr><th>Label</th><th>Value</th><th>Status</th><th></th></tr></thead>
+          <tbody id="lv-grade-tbody"></tbody>
+        </table>
+      </div>
+
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:10px;font-weight:700;color:var(--mut);letter-spacing:1px;font-family:var(--fm)">PAYMENT METHODS</span>
+          <button class="hbtn hb-p" style="padding:3px 10px;font-size:10px" onclick="openNewLookup('payment_method')"><i class="ti ti-plus" style="font-size:11px"></i> Add</button>
+        </div>
+        <table class="dtbl"><thead><tr><th>Label</th><th>Emoji</th><th>Status</th><th></th></tr></thead>
+          <tbody id="lv-payment_method-tbody"></tbody>
+        </table>
+      </div>
+
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:10px;font-weight:700;color:var(--mut);letter-spacing:1px;font-family:var(--fm)">EXPENSE CATEGORIES</span>
+          <button class="hbtn hb-p" style="padding:3px 10px;font-size:10px" onclick="openNewLookup('expense_category')"><i class="ti ti-plus" style="font-size:11px"></i> Add</button>
+        </div>
+        <table class="dtbl"><thead><tr><th>Label</th><th>Emoji</th><th>Status</th><th></th></tr></thead>
+          <tbody id="lv-expense_category-tbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
 </div>
 </div>
 
@@ -1407,9 +1449,32 @@ function renderProduceUnits(d) {
   document.getElementById('pu-sell').textContent        = s.sell_signals     || '—';
   document.getElementById('pu-units').textContent       = s.unit_count       || '—';
   document.getElementById('pu-currencies').textContent  = s.active_currencies || '—';
+  document.getElementById('pu-lookups').textContent     = s.lookup_count     || '—';
   document.getElementById('pu-prod-badge').textContent  = (s.produce_count   || '—') + ' Types';
   document.getElementById('pu-units-badge').textContent = (s.unit_count      || '—') + ' Units';
   document.getElementById('pu-cur-badge').textContent   = (s.currency_count  || '—') + ' Currencies';
+
+  const lvStatusBadge = lv => `<span class="spill ${lv.is_active ? 'sp-sy' : 'sp-of'}">${lv.is_active ? 'Active' : 'Off'}</span>`;
+  const lvBtns = lv => `<div class="fact-btns">
+    <button class="abtn abtn-e" onclick='openEditLookup(${lv.id},${JSON.stringify(lv).replace(/"/g,"&quot;")})'><i class="ti ti-pencil"></i></button>
+    <button class="abtn" style="color:var(--mut)" onclick="toggleLookup(${lv.id})" title="${lv.is_active ? 'Deactivate' : 'Activate'}"><i class="ti ti-power"></i></button>
+    <button class="abtn abtn-d" onclick="askDelete('/lookups/${lv.id}','${lv.label.replace(/'/g,"\\'")}')"><i class="ti ti-trash"></i></button>
+  </div>`;
+
+  const lookups = d.lookups || [];
+  ['grade','payment_method','expense_category'].forEach(group => {
+    const tbody = document.getElementById('lv-' + group + '-tbody');
+    if (!tbody) return;
+    const rows = lookups.filter(lv => lv.group === group);
+    tbody.innerHTML = rows.length ? rows.map(lv => `
+      <tr>
+        <td style="font-weight:600">${lv.label}</td>
+        <td style="color:var(--mut)">${group === 'grade' ? lv.value : (lv.emoji || '—')}</td>
+        <td>${lvStatusBadge(lv)}</td>
+        <td>${lvBtns(lv)}</td>
+      </tr>
+    `).join('') : `<tr><td colspan="4" style="color:var(--mut);text-align:center;padding:12px">No entries</td></tr>`;
+  });
 
   document.getElementById('currencies-tbody').innerHTML = (d.currencies || []).map(c => `
     <tr>
@@ -1635,6 +1700,77 @@ async function toggleCurrency(id) {
     pageCache['pu'] = null;
     loadPage('pu');
     showToast(res.is_active ? 'Currency activated' : 'Currency deactivated');
+  }
+}
+
+// ─── LOOKUP VALUES ────────────────────────────────────────────────────────────
+let lookupEditId = null;
+let lookupEditGroup = null;
+
+const LV_GROUP_LABELS = { grade: 'Grade', payment_method: 'Payment Method', expense_category: 'Expense Category' };
+
+function openNewLookup(group) {
+  lookupEditId    = null;
+  lookupEditGroup = group;
+  document.getElementById('modal-lookup-title').textContent = 'New ' + LV_GROUP_LABELS[group];
+  document.getElementById('lookup-submit-btn').textContent  = 'Add';
+  document.getElementById('f-lv-group').value     = group;
+  document.getElementById('f-lv-label').value     = '';
+  document.getElementById('f-lv-value').value     = '';
+  document.getElementById('f-lv-emoji').value     = '';
+  document.getElementById('f-lv-order').value     = '';
+  document.getElementById('lv-emoji-row').style.display = group === 'grade' ? 'none' : '';
+  clearErrors();
+  openModal('modal-lookup');
+}
+
+function openEditLookup(id, data) {
+  lookupEditId    = id;
+  lookupEditGroup = data.group;
+  document.getElementById('modal-lookup-title').textContent = 'Edit — ' + data.label;
+  document.getElementById('lookup-submit-btn').textContent  = 'Save Changes';
+  document.getElementById('f-lv-group').value     = data.group;
+  document.getElementById('f-lv-label').value     = data.label;
+  document.getElementById('f-lv-value').value     = data.value;
+  document.getElementById('f-lv-emoji').value     = data.emoji || '';
+  document.getElementById('f-lv-order').value     = data.sort_order ?? '';
+  document.getElementById('lv-emoji-row').style.display = data.group === 'grade' ? 'none' : '';
+  clearErrors();
+  openModal('modal-lookup');
+}
+
+async function submitLookup() {
+  clearErrors();
+  const label = document.getElementById('f-lv-label').value.trim();
+  const value = document.getElementById('f-lv-value').value.trim() || label;
+  const body  = {
+    group:      document.getElementById('f-lv-group').value,
+    label,
+    value,
+    emoji:      document.getElementById('f-lv-emoji').value.trim() || null,
+    sort_order: +document.getElementById('f-lv-order').value || null,
+  };
+
+  const url    = lookupEditId ? '/lookups/' + lookupEditId : '/lookups';
+  const method = lookupEditId ? 'PUT' : 'POST';
+  const res    = await api(url, method, body);
+
+  if (res.success) {
+    closeModal('modal-lookup');
+    pageCache['pu'] = null;
+    loadPage('pu');
+    showToast(lookupEditId ? 'Updated!' : LV_GROUP_LABELS[body.group] + ' added!');
+  } else if (res.errors) {
+    showErrors({'lv-label': res.errors.label, 'lv-value': res.errors.value});
+  }
+}
+
+async function toggleLookup(id) {
+  const res = await api('/lookups/' + id + '/toggle', 'PATCH');
+  if (res.success) {
+    pageCache['pu'] = null;
+    loadPage('pu');
+    showToast(res.is_active ? 'Activated' : 'Deactivated');
   }
 }
 
