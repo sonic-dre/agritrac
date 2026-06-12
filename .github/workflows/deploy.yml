@@ -8,17 +8,36 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger deploy webhook
-        run: |
-          echo "Calling deploy webhook..."
-          HTTP=$(curl -s -o /tmp/deploy.log -w "%{http_code}" \
-            --connect-timeout 10 \
-            --max-time 60 \
-            "${{ secrets.DEPLOY_WEBHOOK_URL }}?secret=${{ secrets.DEPLOY_SECRET }}")
-          echo "--- Server output ---"
-          cat /tmp/deploy.log
-          echo "--- HTTP status: $HTTP ---"
-          if [ "$HTTP" != "200" ]; then
-            echo "Deployment failed (HTTP $HTTP)"
-            exit 1
-          fi
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+            cd ${{ secrets.SSH_PATH }}
+
+            echo ">>> Pulling latest code..."
+            git pull origin master
+
+            echo ">>> Installing dependencies..."
+            /opt/alt/php83/usr/bin/php $(which composer) install --no-dev --optimize-autoloader --no-interaction
+
+            echo ">>> Running migrations..."
+            /opt/alt/php83/usr/bin/php artisan migrate --force
+
+            echo ">>> Clearing and caching config..."
+            /opt/alt/php83/usr/bin/php artisan config:clear
+            /opt/alt/php83/usr/bin/php artisan config:cache
+
+            echo ">>> Caching routes..."
+            /opt/alt/php83/usr/bin/php artisan route:clear
+            /opt/alt/php83/usr/bin/php artisan route:cache
+
+            echo ">>> Caching views..."
+            /opt/alt/php83/usr/bin/php artisan view:clear
+            /opt/alt/php83/usr/bin/php artisan view:cache
+
+            echo ">>> Deployment complete!"
