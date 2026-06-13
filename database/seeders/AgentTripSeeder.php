@@ -108,6 +108,8 @@ class AgentTripSeeder extends Seeder
                 'region'        => $td['region'],
                 'produce_list'  => [$produce?->name ?? 'Maize'],
                 'start_date'    => $td['date'],
+                'total_days'    => 5,
+                'current_day'   => 5,
                 'status'        => 'completed',
                 'sync_status'   => 'synced',
                 'tonnage_kg'    => $totalKg,
