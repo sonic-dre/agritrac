@@ -132,6 +132,9 @@ class MobileController extends Controller
                     $trip->increment('tonnage_kg', max(0, $data['quantity_kg'] ?? 0));
                     $trip->increment('amount_spent', abs($data['total_amount']));
                 }
+                if ($trip->status === 'departing') {
+                    $trip->update(['status' => 'in_progress']);
+                }
             }
         }
 
@@ -166,7 +169,13 @@ class MobileController extends Controller
 
         // Update trip spend
         if (! empty($data['trip_id'])) {
-            Trip::find($data['trip_id'])?->increment('amount_spent', $data['amount']);
+            $trip = Trip::find($data['trip_id']);
+            if ($trip) {
+                $trip->increment('amount_spent', $data['amount']);
+                if ($trip->status === 'departing') {
+                    $trip->update(['status' => 'in_progress']);
+                }
+            }
         }
 
         return response()->json(['id' => $exp->id, 'saved' => true], 201);
